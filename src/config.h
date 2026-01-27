@@ -35,4 +35,8 @@ struct Config
     char mqttHADiscoveryPrefix[MQTT_TOPIC_LEN] = {0};
     char mqttCommandTopic[MQTT_TOPIC_LEN] = {0};
     char mqttStateTopic[MQTT_TOPIC_LEN] = {0};
+
+    // tmp for tests
+    uint8_t boilerAddress = 0;
+    uint64_t boilerModbusSpeed = 0;
 };

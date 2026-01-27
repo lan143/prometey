@@ -12,8 +12,8 @@
 #define RELAY_WARM_FLOOR 2
 #define RELAY_UNKNOW 15
 
-#define RS485RX  35
-#define RS485TX  32
+#define RS485RX  16
+#define RS485TX  13
 
 #define EEPROM_SIZE 2048
 
