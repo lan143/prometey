@@ -1,4 +1,5 @@
 #include <Utils.h>
+#include <esp_log.h>
 
 #include "boiler.h"
 
@@ -117,41 +118,36 @@ void Boiler::updateHotWaterState(bool enabled)
 void Boiler::setCentralHeatingSetPoint(float_t setPoint)
 {
     if (!_driver.setCentralHeatingSetPoint(setPoint)) {
-        return;
+        ESP_LOGE("boiler", "failed to update central heating setpoint. value: %f", setPoint);
     }
-
-    _state.centralHeatingSetPoint = setPoint;
-    _stateMgr->getState().setCentralHeatingSetPoint(_state.centralHeatingSetPoint);
 }
 
 void Boiler::setHotWaterSetPoint(float_t setPoint)
 {
     if (!_driver.setHotWaterSetPoint(setPoint)) {
-        return;
+        ESP_LOGE("boiler", "failed to update hot water setpoint. value: %f", setPoint);
     }
-
-    _state.hotWaterSetPoint = setPoint;
-    _stateMgr->getState().setHotWaterSetPoint(_state.hotWaterSetPoint);
 }
 
 void Boiler::update()
 {
     if ((_lastUpdateTime + 1000) < millis()) {
         if (!_driver.isBoilerOnline()) {
+            ESP_LOGE("boiler", "boiler isnt online");
             _lastUpdateTime = millis();
             return;
         }
 
-        auto state = _stateMgr->getState();
-        state.setCentralHeatingMode(_driver.isCentralHeatingEnabled() ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
-        state.setCentralHeatingCurrentTemperature(_driver.getCurrentCentralHeatingTemperature());
-        state.setHotWaterMode(_driver.isHotWaterEnabled() ? EDHA::MODE_GAS : EDHA::MODE_OFF);
-        state.setHotWaterCurrentTemperature(_driver.getCurrentHotWaterTemperature());
-        state.changeHotWaterActive(_driver.isHotWaterEnabled());
-        state.changeFlameActive(_driver.isFlameActive());
-        state.changeFault(_driver.getErrorCode() != 0);
-        state.setModulation(_driver.getCurrentModulation());
-        
+        _stateMgr->getState().setCentralHeatingMode(_driver.isCentralHeatingEnabled() ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
+        _stateMgr->getState().setCentralHeatingCurrentTemperature(_driver.getCurrentCentralHeatingTemperature());
+        _stateMgr->getState().setHotWaterMode(_driver.isHotWaterEnabled() ? EDHA::MODE_GAS : EDHA::MODE_OFF);
+        _stateMgr->getState().setHotWaterCurrentTemperature(_driver.getCurrentHotWaterTemperature());
+        _stateMgr->getState().changeHotWaterActive(_driver.isHotWaterActive());
+        _stateMgr->getState().changeFlameActive(_driver.isFlameActive());
+        _stateMgr->getState().changeFault(_driver.getErrorCode() != 0);
+        _stateMgr->getState().setModulation(_driver.getCurrentModulation());
+        _stateMgr->getState().setCentralHeatingSetPoint(_driver.getCentralHeatingSetPoint());
+        _stateMgr->getState().setHotWaterSetPoint(_driver.getHotWaterSetPoint());
 
         _lastUpdateTime = millis();
     }

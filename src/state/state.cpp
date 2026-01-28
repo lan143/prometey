@@ -32,8 +32,8 @@ std::string State::marshalJSON()
             }
         }
 
-        if (_isFlameActive.Valid()) {
-            entity[F("centralHeatingState")] = _isFlameActive.Value() ? "heating" : "idle";
+        if (_isCentralHeatingActive.Valid()) {
+            entity[F("centralHeatingState")] = _isCentralHeatingActive.Value() ? "heating" : "idle";
         }
 
         if (_centralHeatingSetPoint.Valid()) {

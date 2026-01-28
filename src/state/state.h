@@ -22,6 +22,7 @@ public:
     void setHotWaterSetPoint(float_t value) { _hotWaterSetPoint.setValidValue(value); }
     void setHotWaterCurrentTemperature(float_t value) { _hotWaterCurrentTemperature.setValidValue(value); }
 
+    void changeCentralHeatingActive(bool active) { _isCentralHeatingActive.setValidValue(active); }
     void changeHotWaterActive(bool active) { _isHotWaterActive.setValidValue(active); }
     void changeFlameActive(bool active) { _isFlameActive.setValidValue(active); }
     void changeFault(bool active) { _isFault.setValidValue(active); }
@@ -39,6 +40,7 @@ private:
     EDUtils::Nullable<float_t> _hotWaterSetPoint = EDUtils::Nullable<float_t>(false, 0.0f);
     EDUtils::Nullable<float_t> _hotWaterCurrentTemperature = EDUtils::Nullable<float_t>(false, 0.0f);
 
+    EDUtils::Nullable<bool> _isCentralHeatingActive = EDUtils::Nullable<bool>(false, false);
     EDUtils::Nullable<bool> _isHotWaterActive = EDUtils::Nullable<bool>(false, false);
     EDUtils::Nullable<bool> _isFlameActive = EDUtils::Nullable<bool>(false, false);
     EDUtils::Nullable<bool> _isFault = EDUtils::Nullable<bool>(false, false);

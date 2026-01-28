@@ -17,14 +17,18 @@ public:
     uint8_t getMaxCentralHeatingTemperature() const;
     uint8_t getMinHotWaterTemperature() const;
     uint8_t getMaxHotWaterTemperature() const;
+    float_t getCentralHeatingSetPoint() const;
     float_t getCurrentCentralHeatingTemperature() const;
     float_t getCurrentHotWaterTemperature() const;
+    float_t getHotWaterSetPoint() const;
     float_t getCurrentPressure() const;
-    float_t getCurrentHowWaterConsumption() const;
+    float_t getCurrentHotWaterConsumption() const;
     uint16_t getCurrentModulation() const;
     bool isFlameActive() const { return _isFlameActive; }
     bool isCentralHeatingEnabled() const { return _isCentralHeatingEnabled; };
     bool isHotWaterEnabled() const { return _isHotWaterEnabled; }
+    bool isCentralHeatingActive() const { return _isCentralHeatingActive; }
+    bool isHotWaterActive() const { return _isHotWaterActive; }
     uint8_t getErrorCode() const;
 
     bool setCentralHeatingSetPoint(float_t temperature);
@@ -35,10 +39,15 @@ public:
     void update();
 
 private:
+    bool holdingRegistersWrite(uint16_t reg, uint16_t val);
+
+private:
     uint64_t _lastUpdateTime = 0;
     bool _isFlameActive = false;
     bool _isCentralHeatingEnabled = false;
     bool _isHotWaterEnabled = false;
+    bool _isCentralHeatingActive = false;
+    bool _isHotWaterActive = false;
     bool _isBoilerOnline = false;
 
 private:
