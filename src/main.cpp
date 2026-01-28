@@ -100,6 +100,7 @@ void setup()
 
     boilerDriver.init(configMgr.getConfig().boilerAddress);
     boiler.init(&discoveryMgr, device, configMgr.getConfig().mqttStateTopic, configMgr.getConfig().mqttCommandTopic);
+    healthCheck.registerService(&boiler);
 
     commandConsumer.init(configMgr.getConfig().mqttCommandTopic);
     mqtt.subscribe(&commandConsumer);

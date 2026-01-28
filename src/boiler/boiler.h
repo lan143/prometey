@@ -1,13 +1,14 @@
 #pragma once
 
 #include <discovery.h>
+#include <ready.h>
 #include <state/state_mgr.h>
 
 #include "driver.h"
 #include "state.h"
 #include "state/state.h"
 
-class Boiler
+class Boiler : public EDHealthCheck::Ready
 {
 public:
     Boiler(Driver& driver, EDUtils::StateMgr<State>* stateMgr) : _driver(driver), _stateMgr(stateMgr) {}
@@ -20,9 +21,12 @@ public:
 
     void update();
 
+    EDHealthCheck::ReadyResult ready();
+
 private:
     BoilerState _state;
     uint64_t _lastUpdateTime = 0;
+    uint64_t _onlineFaultCount = 0;
 
 private:
     Driver& _driver;

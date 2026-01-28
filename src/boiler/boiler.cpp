@@ -135,9 +135,11 @@ void Boiler::update()
         if (!_driver.isBoilerOnline()) {
             ESP_LOGE("boiler", "boiler isnt online");
             _lastUpdateTime = millis();
+            _onlineFaultCount++;
             return;
         }
 
+        _onlineFaultCount = 0;
         _stateMgr->getState().setCentralHeatingMode(_driver.isCentralHeatingEnabled() ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
         _stateMgr->getState().setCentralHeatingCurrentTemperature(_driver.getCurrentCentralHeatingTemperature());
         _stateMgr->getState().setHotWaterMode(_driver.isHotWaterEnabled() ? EDHA::MODE_GAS : EDHA::MODE_OFF);
@@ -151,4 +153,19 @@ void Boiler::update()
 
         _lastUpdateTime = millis();
     }
+}
+
+EDHealthCheck::ReadyResult Boiler::ready()
+{
+    bool ready = true;
+    std::string message = "";
+    if (_stateMgr->getState().isFault()) {
+        ready = false;
+        message = "boiler is in fault state";
+    } else if (_onlineFaultCount >= 20) {
+        ready = false;
+        message = "can't connect to boiler";
+    }
+
+    return EDHealthCheck::ReadyResult(ready, message);
 }

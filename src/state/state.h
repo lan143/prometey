@@ -26,6 +26,7 @@ public:
     void changeHotWaterActive(bool active) { _isHotWaterActive.setValidValue(active); }
     void changeFlameActive(bool active) { _isFlameActive.setValidValue(active); }
     void changeFault(bool active) { _isFault.setValidValue(active); }
+    bool isFault() const { return _isFault.Valid() && _isFault.Value(); }
 
     void setModulation(float_t value) { _modulation.setValidValue(value); }
 
