@@ -11,6 +11,9 @@ void Boiler::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, std::s
     climateModes.push_back(EDHA::MODE_OFF);
     climateModes.push_back(EDHA::MODE_HEAT);
 
+    auto minCentralHeatingTemperature = _driver.getMinCentralHeatingTemperature();
+    auto maxCentralHeatingTemperature = _driver.getMaxCentralHeatingTemperature();
+
     discoveryMgr->addClimate(
         device,
         "Climate",
@@ -19,8 +22,8 @@ void Boiler::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, std::s
     )
         ->setCurrentTemperatureTemplate("{{ value_json.centralHeatingCurrentTemperature }}")
         ->setCurrentTemperatureTopic(stateTopic)
-        ->setMinTemp(_driver.getMinCentralHeatingTemperature())
-        ->setMaxTemp(_driver.getMaxCentralHeatingTemperature())
+        ->setMinTemp(minCentralHeatingTemperature.Valid() ? minCentralHeatingTemperature.Value() : 30)
+        ->setMaxTemp(maxCentralHeatingTemperature.Valid() ? maxCentralHeatingTemperature.Value() : 60)
         ->setModeCommandTemplate("{\"centralHeatingMode\": \"{{ value }}\"}")
         ->setModeCommandTopic(commandTopic)
         ->setModeStateTemplate("{{ value_json.centralHeatingMode }}")
@@ -39,6 +42,9 @@ void Boiler::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, std::s
     hotWaterModes.push_back(EDHA::MODE_OFF);
     hotWaterModes.push_back(EDHA::MODE_GAS);
 
+    auto minHotWaterTemperature = _driver.getMinHotWaterTemperature();
+    auto maxHotWaterTemperature = _driver.getMaxHotWaterTemperature();
+
     discoveryMgr->addWaterHeater(
         device,
         "Hot water",
@@ -51,8 +57,8 @@ void Boiler::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, std::s
         ->setModeStateTopic(stateTopic)
         ->setCurrentTemperatureTemplate("{{ value_json.hotWaterCurrentTemperature }}")
         ->setCurrentTemperatureTopic(stateTopic)
-        ->setMinTemp(_driver.getMinHotWaterTemperature())
-        ->setMaxTemp(_driver.getMaxHotWaterTemperature())
+        ->setMinTemp(minHotWaterTemperature.Valid() ? minHotWaterTemperature.Value() : 30)
+        ->setMaxTemp(maxHotWaterTemperature.Valid() ? maxHotWaterTemperature.Value() : 60)
         ->setTemperatureCommandTemplate("{\"hotWaterSetPoint\": {{ value }} }")
         ->setTemperatureCommandTopic(commandTopic)
         ->setModes(hotWaterModes)
@@ -140,16 +146,55 @@ void Boiler::update()
         }
 
         _onlineFaultCount = 0;
-        _stateMgr->getState().setCentralHeatingMode(_driver.isCentralHeatingEnabled() ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
-        _stateMgr->getState().setCentralHeatingCurrentTemperature(_driver.getCurrentCentralHeatingTemperature());
-        _stateMgr->getState().setHotWaterMode(_driver.isHotWaterEnabled() ? EDHA::MODE_GAS : EDHA::MODE_OFF);
-        _stateMgr->getState().setHotWaterCurrentTemperature(_driver.getCurrentHotWaterTemperature());
-        _stateMgr->getState().changeHotWaterActive(_driver.isHotWaterActive());
-        _stateMgr->getState().changeFlameActive(_driver.isFlameActive());
-        _stateMgr->getState().changeFault(_driver.getErrorCode() != 0);
-        _stateMgr->getState().setModulation(_driver.getCurrentModulation());
-        _stateMgr->getState().setCentralHeatingSetPoint(_driver.getCentralHeatingSetPoint());
-        _stateMgr->getState().setHotWaterSetPoint(_driver.getHotWaterSetPoint());
+        auto isCentralHeatingEnabled = _driver.isCentralHeatingEnabled();
+        if (isCentralHeatingEnabled.Valid()) {
+            _stateMgr->getState().setCentralHeatingMode(isCentralHeatingEnabled.Value() ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
+        }
+
+        auto currentCentralHeatingTemperature = _driver.getCurrentCentralHeatingTemperature();
+        if (currentCentralHeatingTemperature.Valid()) {
+            _stateMgr->getState().setCentralHeatingCurrentTemperature(currentCentralHeatingTemperature.Value());
+        }
+
+        auto isHotWaterEnabled = _driver.isHotWaterEnabled();
+        if (isHotWaterEnabled.Valid()) {
+            _stateMgr->getState().setHotWaterMode(isHotWaterEnabled.Value() ? EDHA::MODE_GAS : EDHA::MODE_OFF);
+        }
+
+        auto currentHotWaterTemperature = _driver.getCurrentHotWaterTemperature();
+        if (currentHotWaterTemperature.Valid()) {
+            _stateMgr->getState().setHotWaterCurrentTemperature(currentHotWaterTemperature.Value());
+        }
+
+        auto isHotWaterActive = _driver.isHotWaterActive();
+        if (isHotWaterActive.Valid()) {
+            _stateMgr->getState().changeHotWaterActive(isHotWaterActive.Value());
+        }
+
+        auto isFlameActive = _driver.isFlameActive();
+        if (isFlameActive.Valid()) {
+            _stateMgr->getState().changeFlameActive(isFlameActive.Value());
+        }
+
+        auto errorCode = _driver.getErrorCode();
+        if (errorCode.Valid()) {
+            _stateMgr->getState().changeFault(errorCode.Value() != 0);
+        }
+
+        auto currentModulation = _driver.getCurrentModulation();
+        if (currentModulation.Valid()) {
+            _stateMgr->getState().setModulation(currentModulation.Value());
+        }
+
+        auto centralHeatingSetPoint = _driver.getCentralHeatingSetPoint();
+        if (centralHeatingSetPoint.Valid()) {
+            _stateMgr->getState().setCentralHeatingSetPoint(centralHeatingSetPoint.Value());
+        }
+
+        auto hotWaterSetPoint = _driver.getHotWaterSetPoint();
+        if (hotWaterSetPoint.Valid()) {
+            _stateMgr->getState().setHotWaterSetPoint(hotWaterSetPoint.Value());
+        }
 
         _lastUpdateTime = millis();
     }

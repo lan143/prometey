@@ -9,77 +9,124 @@ void EctoControlAdapterV2::init(uint8_t address)
     holdingRegistersWrite(0x0030, 0); // adapter is connected to boiler directly
 }
 
-uint8_t EctoControlAdapterV2::getMinCentralHeatingTemperature() const
+EDUtils::Nullable<uint8_t> EctoControlAdapterV2::getMinCentralHeatingTemperature() const
 {
-    return _client.holdingRegisterRead(_address, 0x0014);
-}
-
-uint8_t EctoControlAdapterV2::getMaxCentralHeatingTemperature() const
-{
-    return _client.holdingRegisterRead(_address, 0x0015);
-}
-
-uint8_t EctoControlAdapterV2::getMinHotWaterTemperature() const
-{
-    return _client.holdingRegisterRead(_address, 0x0016);
-}
-
-uint8_t EctoControlAdapterV2::getMaxHotWaterTemperature() const
-{
-    return _client.holdingRegisterRead(_address, 0x0017);
-}
-
-float_t EctoControlAdapterV2::getCurrentCentralHeatingTemperature() const
-{
-    float_t val = (float_t)_client.holdingRegisterRead(_address, 0x0018);
-
-    return val / 10;
-}
-
-float_t EctoControlAdapterV2::getCurrentHotWaterTemperature() const
-{
-    float_t val = (float_t)_client.holdingRegisterRead(_address, 0x0019);
-
-    return val / 10;
-}
-
-float_t EctoControlAdapterV2::getHotWaterSetPoint() const
-{
-    return _client.holdingRegisterRead(_address, 0x0037);
-}
-
-float_t EctoControlAdapterV2::getCentralHeatingSetPoint() const
-{
-    auto val = _client.holdingRegisterRead(_address, 0x0031);
-    if (val == -1) {
-        return 1;
+    auto result = _client.holdingRegisterRead(_address, 0x0014);
+    if (result == -1) {
+        return EDUtils::Nullable<uint8_t>(false, 0);
     }
 
-    return (float_t)val / 10.0f;
+    return EDUtils::Nullable<uint8_t>(true, result);
 }
 
-float_t EctoControlAdapterV2::getCurrentPressure() const
+EDUtils::Nullable<uint8_t> EctoControlAdapterV2::getMaxCentralHeatingTemperature() const
 {
-   float_t val = (float_t)_client.holdingRegisterRead(_address, 0x001A);
+    auto result = _client.holdingRegisterRead(_address, 0x0015);
+    if (result == -1) {
+        return EDUtils::Nullable<uint8_t>(false, 0);
+    }
 
-    return val / 10;
+    return EDUtils::Nullable<uint8_t>(true, result);
 }
 
-float_t EctoControlAdapterV2::getCurrentHotWaterConsumption() const
+EDUtils::Nullable<uint8_t> EctoControlAdapterV2::getMinHotWaterTemperature() const
 {
-   float_t val = (float_t)_client.holdingRegisterRead(_address, 0x001B);
+    auto result = _client.holdingRegisterRead(_address, 0x0016);
+    if (result == -1) {
+        return EDUtils::Nullable<uint8_t>(false, 0);
+    }
 
-    return val / 10;
+    return EDUtils::Nullable<uint8_t>(true, result);
 }
 
-uint16_t EctoControlAdapterV2::getCurrentModulation() const
+EDUtils::Nullable<uint8_t> EctoControlAdapterV2::getMaxHotWaterTemperature() const
 {
-    return _client.holdingRegisterRead(_address, 0x001C);
+    auto result = _client.holdingRegisterRead(_address, 0x0017);
+    if (result == -1) {
+        return EDUtils::Nullable<uint8_t>(false, 0);
+    }
+
+    return EDUtils::Nullable<uint8_t>(true, result);
 }
 
-uint8_t EctoControlAdapterV2::getErrorCode() const
+EDUtils::Nullable<float_t> EctoControlAdapterV2::getCurrentCentralHeatingTemperature() const
 {
-    return _client.holdingRegisterRead(_address, 0x0023);
+    auto result = _client.holdingRegisterRead(_address, 0x0018);
+    if (result == -1) {
+        return EDUtils::Nullable<float_t>(false, 0);
+    }
+
+    return EDUtils::Nullable<float_t>(true, (float_t)result / 10.0f);
+}
+
+EDUtils::Nullable<float_t> EctoControlAdapterV2::getCurrentHotWaterTemperature() const
+{
+    auto result = _client.holdingRegisterRead(_address, 0x0019);
+    if (result == -1) {
+        return EDUtils::Nullable<float_t>(false, 0);
+    }
+
+    return EDUtils::Nullable<float_t>(true, (float_t)result / 10.0f);
+}
+
+EDUtils::Nullable<float_t> EctoControlAdapterV2::getHotWaterSetPoint() const
+{
+    auto result = _client.holdingRegisterRead(_address, 0x0037);
+    if (result == -1) {
+        return EDUtils::Nullable<float_t>(false, 0);
+    }
+
+    return EDUtils::Nullable<float_t>(true, result);
+}
+
+EDUtils::Nullable<float_t> EctoControlAdapterV2::getCentralHeatingSetPoint() const
+{
+    auto result = _client.holdingRegisterRead(_address, 0x0031);
+    if (result == -1) {
+        return EDUtils::Nullable<float_t>(false, 0);
+    }
+
+    return EDUtils::Nullable<float_t>(true, (float_t)result / 10.0f);
+}
+
+EDUtils::Nullable<float_t> EctoControlAdapterV2::getCurrentPressure() const
+{
+    auto result = _client.holdingRegisterRead(_address, 0x001A);
+    if (result == -1) {
+        return EDUtils::Nullable<float_t>(false, 0);
+    }
+
+    return EDUtils::Nullable<float_t>(true, (float_t)result / 10.0f);
+}
+
+EDUtils::Nullable<float_t> EctoControlAdapterV2::getCurrentHotWaterConsumption() const
+{
+    auto result = _client.holdingRegisterRead(_address, 0x001B);
+    if (result == -1) {
+        return EDUtils::Nullable<float_t>(false, 0);
+    }
+
+    return EDUtils::Nullable<float_t>(true, (float_t)result / 10.0f);
+}
+
+EDUtils::Nullable<uint16_t> EctoControlAdapterV2::getCurrentModulation() const
+{
+    auto result = _client.holdingRegisterRead(_address, 0x001C);
+    if (result == -1) {
+        return EDUtils::Nullable<uint16_t>(false, 0);
+    }
+
+    return EDUtils::Nullable<uint16_t>(true, result);
+}
+
+EDUtils::Nullable<uint8_t> EctoControlAdapterV2::getErrorCode() const
+{
+    auto result = _client.holdingRegisterRead(_address, 0x0023);
+    if (result == -1) {
+        return EDUtils::Nullable<uint8_t>(false, 0);
+    }
+
+    return EDUtils::Nullable<uint8_t>(true, result);
 }
 
 bool EctoControlAdapterV2::setCentralHeatingSetPoint(float_t temperature)
@@ -100,7 +147,7 @@ bool EctoControlAdapterV2::changeCentralHeatingState(bool enabled)
         val |= 0x1;
     }
 
-    if (_isHotWaterEnabled) {
+    if (_isHotWaterEnabled.Valid() && _isHotWaterEnabled.Value()) {
         val |= 0x2;
     }
 
@@ -110,7 +157,7 @@ bool EctoControlAdapterV2::changeCentralHeatingState(bool enabled)
 bool EctoControlAdapterV2::changeHotWaterState(bool enabled)
 {
     uint16_t val = 0;
-    if (_isCentralHeatingEnabled) {
+    if (_isCentralHeatingEnabled.Valid() && _isCentralHeatingEnabled.Value()) {
         val |= 0x1;
     }
 
@@ -144,9 +191,9 @@ void EctoControlAdapterV2::update()
             return;
         }
 
-        _isFlameActive = val & 0x1;
-        _isCentralHeatingActive = val & 0x2;
-        _isHotWaterActive = val & 0x4;
+        _isFlameActive.setValidValue(val & 0x1);
+        _isCentralHeatingActive.setValidValue(val & 0x2);
+        _isHotWaterActive.setValidValue(val & 0x4);
 
         val = _client.holdingRegisterRead(_address, 0x0039);
         if (val == -1) {
@@ -155,8 +202,8 @@ void EctoControlAdapterV2::update()
             return;
         }
 
-        _isCentralHeatingEnabled = val & 0x1;
-        _isHotWaterEnabled = val & 0x2;
+        _isCentralHeatingEnabled.setValidValue(val & 0x1);
+        _isHotWaterEnabled.setValidValue(val & 0x2);
 
         _isBoilerOnline = true;
         _lastUpdateTime = millis();
