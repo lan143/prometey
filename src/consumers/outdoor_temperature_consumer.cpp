@@ -7,9 +7,9 @@ void OutdoorTemperatureConsumer::consume(std::string payload)
 {
     EDUtils::Nullable<float_t> outdoorTemperature = EDUtils::Nullable<float_t>(false, 0);
 
-    if (!EDUtils::parseJson(payload.c_str(), [&outdoorTemperature](JsonObject root) {
-        if (root.containsKey(F("centralHeatingMode"))) {
-            outdoorTemperature.setValidValue(root[F("centralHeatingMode")].as<float_t>());
+    if (!EDUtils::parseJson(payload.c_str(), [this, &outdoorTemperature](JsonObject root) {
+        if (root.containsKey(_field)) {
+            outdoorTemperature.setValidValue(root[_field].as<float_t>());
         }
 
         return true;
