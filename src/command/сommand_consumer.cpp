@@ -15,7 +15,13 @@ void CommandConsumer::consume(std::string payload)
     }
 
     if (command.getCentralHeatingMode().Valid()) {
-        _boiler->updateCentralHeatingState(command.getCentralHeatingMode().Value() != "off");
+        if (command.getCentralHeatingMode().Value() == "off") {
+            _boiler->setCentralHeatingMode(CENTRAL_HEATING_MODE_OFF);
+        } else if (command.getCentralHeatingMode().Value() == "heat") {
+            _boiler->setCentralHeatingMode(CENTRAL_HEATING_MODE_HEAT);
+        } else if (command.getCentralHeatingMode().Value() == "auto") {
+            _boiler->setCentralHeatingMode(CENTRAL_HEATING_MODE_AUTO);
+        }
     }
 
     if (command.getCentralHeatingSetPoint().Valid()) {

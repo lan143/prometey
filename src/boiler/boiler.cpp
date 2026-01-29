@@ -10,6 +10,7 @@ void Boiler::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, std::s
     std::list<EDHA::Mode> climateModes;
     climateModes.push_back(EDHA::MODE_OFF);
     climateModes.push_back(EDHA::MODE_HEAT);
+    climateModes.push_back(EDHA::MODE_AUTO);
 
     auto minCentralHeatingTemperature = _driver.getMinCentralHeatingTemperature();
     auto maxCentralHeatingTemperature = _driver.getMaxCentralHeatingTemperature();
@@ -111,9 +112,14 @@ void Boiler::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, std::s
         ->setPayloadOff("false");
 }
 
-void Boiler::updateCentralHeatingState(bool enabled)
+void Boiler::setCentralHeatingMode(CentralHeatingMode mode)
 {
-    _driver.changeCentralHeatingState(enabled);
+    _state.mode = mode;
+    if (mode == CENTRAL_HEATING_MODE_OFF) {
+        _driver.changeCentralHeatingState(false);
+    } else if (mode == CENTRAL_HEATING_MODE_HEAT) {
+        _driver.changeCentralHeatingState(true);
+    }
 }
 
 void Boiler::updateHotWaterState(bool enabled)
