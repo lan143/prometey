@@ -4,6 +4,10 @@
 #include <WiFi.h>
 #include <mqtt_config.h>
 
+#include "boiler/config.h"
+#include "room/config.h"
+#include "valve/config.h"
+
 #define CURRENT_VERSION 1
 
 #define WIFI_SSID_LEN 32 + 1
@@ -36,7 +40,8 @@ struct Config
     char mqttCommandTopic[MQTT_TOPIC_LEN] = {0};
     char mqttStateTopic[MQTT_TOPIC_LEN] = {0};
 
-    // tmp for tests
-    uint8_t boilerAddress = 0;
-    uint64_t boilerModbusSpeed = 0;
+    BoilerConfig boiler;
+
+    RoomConfig rooms[10] = {};
+    ValveConfig valves[12] = {};
 };

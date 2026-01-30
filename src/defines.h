@@ -15,7 +15,7 @@
 #define RS485RX  16
 #define RS485TX  13
 
-#define EEPROM_SIZE 2048
+#define EEPROM_SIZE 4096
 
 #ifndef CONTROLLER_NAME
 #define CONTROLLER_NAME "Prometey"

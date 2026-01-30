@@ -29,6 +29,9 @@ std::string State::marshalJSON()
             case EDHA::MODE_HEAT:
                 entity[F("centralHeatingMode")] = "heat";
                 break;
+            case EDHA::MODE_AUTO:
+                entity[F("centralHeatingMode")] = "auto";
+                break;
             }
         }
 

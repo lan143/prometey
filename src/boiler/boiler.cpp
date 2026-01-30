@@ -3,8 +3,17 @@
 
 #include "boiler.h"
 
-void Boiler::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, std::string stateTopic, std::string commandTopic)
-{
+void Boiler::init(
+    EDHA::DiscoveryMgr* discoveryMgr,
+    EDHA::Device* device,
+    std::string stateTopic,
+    std::string commandTopic,
+    float_t K,
+    float_t B
+) {
+    _K = K;
+    _kB = B;
+
     const char* chipID = EDUtils::getChipID();
 
     std::list<EDHA::Mode> climateModes;
@@ -120,6 +129,18 @@ void Boiler::setCentralHeatingMode(CentralHeatingMode mode)
     } else if (mode == CENTRAL_HEATING_MODE_HEAT) {
         _driver.changeCentralHeatingState(true);
     }
+
+    switch (mode) {
+        case CENTRAL_HEATING_MODE_OFF:
+            _stateMgr->getState().setCentralHeatingMode(EDHA::MODE_OFF);
+            break;
+        case CENTRAL_HEATING_MODE_HEAT:
+            _stateMgr->getState().setCentralHeatingMode(EDHA::MODE_HEAT);
+            break;
+        case CENTRAL_HEATING_MODE_AUTO:
+            _stateMgr->getState().setCentralHeatingMode(EDHA::MODE_AUTO);
+            break;
+    }
 }
 
 void Boiler::updateHotWaterState(bool enabled)
@@ -129,6 +150,10 @@ void Boiler::updateHotWaterState(bool enabled)
 
 void Boiler::setCentralHeatingSetPoint(float_t setPoint)
 {
+    if (_state.mode == CENTRAL_HEATING_MODE_AUTO) { // skip update setpoint in auto mode
+        return;
+    }
+
     if (!_driver.setCentralHeatingSetPoint(setPoint)) {
         ESP_LOGE("boiler", "failed to update central heating setpoint. value: %f", setPoint);
     }
@@ -152,10 +177,10 @@ void Boiler::update()
         }
 
         _onlineFaultCount = 0;
-        auto isCentralHeatingEnabled = _driver.isCentralHeatingEnabled();
+        /*auto isCentralHeatingEnabled = _driver.isCentralHeatingEnabled();
         if (isCentralHeatingEnabled.Valid()) {
             _stateMgr->getState().setCentralHeatingMode(isCentralHeatingEnabled.Value() ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
-        }
+        }*/
 
         auto currentCentralHeatingTemperature = _driver.getCurrentCentralHeatingTemperature();
         if (currentCentralHeatingTemperature.Valid()) {
@@ -204,6 +229,8 @@ void Boiler::update()
 
         _lastUpdateTime = millis();
     }
+
+    updateAutoMode();
 }
 
 EDHealthCheck::ReadyResult Boiler::ready()
@@ -219,4 +246,42 @@ EDHealthCheck::ReadyResult Boiler::ready()
     }
 
     return EDHealthCheck::ReadyResult(ready, message);
+}
+
+void Boiler::updateAutoMode()
+{
+    if (_state.mode != CENTRAL_HEATING_MODE_AUTO) {
+        return;
+    }
+
+    if (_lastAutoUpdateTime == 0 || (_lastAutoUpdateTime + 1200000) < millis()) {
+        auto setPoint = _K * (25 - _state.outdoorTemperature) + _kB;
+        if (setPoint > 30) {
+            if (!_driver.setCentralHeatingSetPoint(setPoint)) {
+                ESP_LOGE("boiler", "failed to update central heating setpoint");
+                _lastAutoUpdateTime += 5000;
+                return;
+            }
+
+            if (!_driver.changeCentralHeatingState(true)) {
+                ESP_LOGE("boiler", "failed to enable central heating");
+                _lastAutoUpdateTime += 5000;
+                return;
+            }
+        } else {
+            if (!_driver.setCentralHeatingSetPoint(30)) {
+                ESP_LOGE("boiler", "failed to update central heating setpoint");
+                _lastAutoUpdateTime += 5000;
+                return;
+            }
+
+            if (!_driver.changeCentralHeatingState(false)) {
+                ESP_LOGE("boiler", "failed to disable central heating");
+                _lastAutoUpdateTime += 5000;
+                return;
+            }
+        }
+
+        _lastAutoUpdateTime = millis();
+    }
 }
