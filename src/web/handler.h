@@ -13,6 +13,7 @@
 #include "config.h"
 #include "boiler/boiler_handler.h"
 #include "network/network.h"
+#include "room/api/room_handler.h"
 
 class Handler {
 public:
@@ -20,9 +21,10 @@ public:
         EDConfig::ConfigMgr<Config>* configMgr,
         NetworkMgr* networkMgr,
         EDHealthCheck::HealthCheck* healthCheck,
-        BoilerHandler* boilerHandler
+        BoilerHandler* boilerHandler,
+        RoomHandler* roomHandler
     ) : _configMgr(configMgr), _networkMgr(networkMgr),
-        _healthCheck(healthCheck), _boilerHandler(boilerHandler) {
+        _healthCheck(healthCheck), _boilerHandler(boilerHandler), _roomHandler(roomHandler) {
         _server = new AsyncWebServer(80);
     }
 
@@ -34,4 +36,5 @@ private:
     EDConfig::ConfigMgr<Config>* _configMgr = nullptr;
     NetworkMgr* _networkMgr = nullptr;
     EDHealthCheck::HealthCheck* _healthCheck = nullptr;
+    RoomHandler* _roomHandler = nullptr;
 };

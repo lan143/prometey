@@ -21,6 +21,7 @@
 #include "consumers/room_command_consumer.h"
 #include "consumers/room_temperature_consumer.h"
 #include "network/network.h"
+#include "room/api/room_handler.h"
 #include "room/room.h"
 #include "state/room_producer.h"
 #include "state/room_state.h"
@@ -51,7 +52,8 @@ OutdoorTemperatureConsumer outdoorTemperatureConsumer(&boiler);
 CommandConsumer commandConsumer(&boiler);
 
 BoilerHandler boilerHandler(&configMgr);
-Handler handler(&configMgr, &networkMgr, &healthCheck, &boilerHandler);
+RoomHandler roomHandler(&configMgr);
+Handler handler(&configMgr, &networkMgr, &healthCheck, &boilerHandler, &roomHandler);
 
 PCF8574 mos1(0x24);
 PCF8574 mos2(0x25);
@@ -144,17 +146,9 @@ void setup()
         snprintf(config->mqttCommandTopic, MQTT_TOPIC_LEN, "prometey/%s/set", EDUtils::getChipID());
         snprintf(config->mqttHADiscoveryPrefix, MQTT_TOPIC_LEN, "homeassistant");
 
-        // tmp
-        config->boiler.driver = BOILER_DRIVER_ECTOCONTROLV2;
-        config->boiler.modbusSpeed = 19200;
-        config->boiler.modbusAddress = 0x7;
-        config->boiler.K = 1.2;
-        config->boiler.B = 25;
-        config->boiler.P = 2;
-        config->boiler.I = 0.001;
-        config->boiler.outdoorSensor = BOILER_OUTDOOR_SENSOR_MQTT;
-        snprintf(config->boiler.outdoorSensorMqttTopic, 128, "bernoulli/0xa83a95ffc9ec/state");
-        snprintf(config->boiler.outdoorSensorMqttField, 64, "temperature");
+        for (int i = 0; i < ROOMS_COUNT; i++) {
+            config->rooms[0].id = i;
+        }
 
         // test tmp room
         config->rooms[0].enabled = true;
@@ -186,7 +180,6 @@ void setup()
     ESP_LOGI("setup", "init PCF8574");
     mos1.begin();
     mos2.begin();
-    //mos2.write(7, LOW); 
 
     ESP_LOGI("setup", "init network");
     networkMgr.init(configMgr.getConfig());
