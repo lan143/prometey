@@ -52,7 +52,7 @@ void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConf
 
 void Room::update()
 {
-    if (!_state.active) {
+    if (!_state.active || _state.currentTemperature == 0.0f) {
         return;
     }
 

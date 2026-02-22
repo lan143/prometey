@@ -12,6 +12,7 @@ void Boiler::init(
     BoilerConfig config
 ) {
     _config = config;
+
     const char* chipID = EDUtils::getChipID();
 
     std::list<EDHA::Mode> climateModes;
@@ -117,6 +118,8 @@ void Boiler::init(
         ->setValueTemplate("{{ value_json.isFault }}")
         ->setPayloadOn("true")
         ->setPayloadOff("false");
+
+    setCentralHeatingMode(CENTRAL_HEATING_MODE_AUTO); // tmp
 }
 
 void Boiler::setCentralHeatingMode(CentralHeatingMode mode)
@@ -253,11 +256,14 @@ void Boiler::updateAutoMode()
     }
 
     if (_lastAutoUpdateTime == 0 || (_lastAutoUpdateTime + 1200000) < millis()) {
-        auto dt = (float_t)millis() - (float_t)_lastAutoUpdateTime;
-        dt /= 1000.0f;
-
+        auto dt = ((float_t)millis() - (float_t)_lastAutoUpdateTime) / 1000.0f;
         auto err = maxTemperatureErr();
-        auto setPoint = _config.K * (maxSetPoint() - _state.outdoorTemperature) + _config.B;
+        auto maxSP = maxSetPoint();
+        if (maxSP == 0.0f) {
+            maxSP = 25;
+        }
+
+        auto setPoint = _config.K * (maxSP - _state.outdoorTemperature) + _config.B;
         setPoint += _config.P * err;
         _I = _I+err*dt*_config.I;
         setPoint = constrain(setPoint + _I, 30, 70);

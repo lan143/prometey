@@ -4,6 +4,7 @@
 #include <discovery.h>
 #include <ready.h>
 #include <state/state_mgr.h>
+#include <nullable.h>
 
 #include "config.h"
 #include "defines.h"
@@ -19,7 +20,12 @@ public:
     Boiler(
         Driver& driver,
         EDUtils::StateMgr<State>* stateMgr
-    ) : _driver(driver), _stateMgr(stateMgr) {}
+    ) : _driver(driver), _stateMgr(stateMgr) {
+        for (int i = 0; i < ROOMS_COUNT; i++) {
+            _roomTemperatureErr[i] = EDUtils::Nullable<float_t>(false, 0.0f);
+            _roomSetPoints[i] = EDUtils::Nullable<float_t>(false, 0.0f);
+        }
+    }
 
     void init(
         EDHA::DiscoveryMgr* discoveryMgr,
@@ -38,13 +44,13 @@ public:
     void updateRoomTemperatureError(uint8_t roomID, float_t err)
     {
         if (roomID < ROOMS_COUNT) {
-            _roomTemperatureErr[roomID] = err;
+            _roomTemperatureErr[roomID].setValidValue(err);
         }
     }
     void updateRoomSetPoint(uint8_t roomID, float_t setPoint)
     {
         if (roomID < ROOMS_COUNT) {
-            _roomTemperatureErr[roomID] = setPoint;
+            _roomSetPoints[roomID].setValidValue(setPoint);
         }
     }
 
@@ -57,11 +63,15 @@ private:
 
     float_t maxTemperatureErr()
     {
-        float_t err = _roomTemperatureErr[0];
+        float_t err = 0.0f;
+        bool init = false;
 
-        for (int i = 1; i < ROOMS_COUNT; i++) {
-            if (err < _roomTemperatureErr[i]) {
-                err = _roomTemperatureErr[i];
+        for (int i = 0; i < ROOMS_COUNT; i++) {
+            if (!init && _roomTemperatureErr[i].Valid()) {
+                err = _roomTemperatureErr[i].Value();
+                init = true;
+            } else if (init && _roomTemperatureErr[i].Valid() && err < _roomTemperatureErr[i].Value()) {
+                err = _roomTemperatureErr[i].Value();
             }
         }
 
@@ -70,11 +80,15 @@ private:
 
     float_t maxSetPoint()
     {
-        float_t setPoint = _roomSetPoints[0];
+        float_t setPoint = 0.0f;
+        bool init = false;
 
-        for (int i = 1; i < ROOMS_COUNT; i++) {
-            if (setPoint < _roomSetPoints[i]) {
-                setPoint = _roomSetPoints[i];
+        for (int i = 0; i < ROOMS_COUNT; i++) {
+            if (!init && _roomSetPoints[i].Valid()) {
+                setPoint = _roomSetPoints[i].Value();
+                init = true;
+            } else if (init && _roomSetPoints[i].Valid() && setPoint < _roomSetPoints[i].Value()) {
+                setPoint = _roomSetPoints[i].Value();
             }
         }
 
@@ -94,8 +108,8 @@ private:
     float_t _kP = 0.0f;
     float_t _kI = 0.0;
 
-    float_t _roomTemperatureErr[ROOMS_COUNT] = {0};
-    float_t _roomSetPoints[ROOMS_COUNT] = {0};
+    EDUtils::Nullable<float_t> _roomTemperatureErr[ROOMS_COUNT];
+    EDUtils::Nullable<float_t> _roomSetPoints[ROOMS_COUNT];
     float_t _I = 0.0f;
 
 private:
