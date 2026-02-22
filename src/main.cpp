@@ -14,6 +14,7 @@
 #include "defines.h"
 #include "config.h"
 #include "boiler/boiler.h"
+#include "boiler/boiler_handler.h"
 #include "boiler/drivers/ectocontrol_adapter_v2.h"
 #include "command/command_consumer.h"
 #include "consumers/outdoor_temperature_consumer.h"
@@ -40,8 +41,6 @@ EDHealthCheck::HealthCheck healthCheck;
 EDHA::DiscoveryMgr discoveryMgr;
 EDHA::Device* device = nullptr;
 
-Handler handler(&configMgr, &networkMgr, &healthCheck);
-
 StateProducer stateProducer(&mqtt);
 EDUtils::StateMgr<State> stateMgr(&stateProducer);
 
@@ -50,6 +49,9 @@ Boiler boiler(boilerDriver, &stateMgr);
 OutdoorTemperatureConsumer outdoorTemperatureConsumer(&boiler);
 
 CommandConsumer commandConsumer(&boiler);
+
+BoilerHandler boilerHandler(&configMgr);
+Handler handler(&configMgr, &networkMgr, &healthCheck, &boilerHandler);
 
 PCF8574 mos1(0x24);
 PCF8574 mos2(0x25);
@@ -60,7 +62,7 @@ std::list<Valve*> valves;
 
 void initRooms()
 {
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < ROOMS_COUNT; i++) {
         auto roomConfig = configMgr.getConfig()->rooms[i];
         ESP_LOGD("main", "room[%d] enabled=%d, mqttStateTopic='%s', mqttCommandTopic='%s'", i, roomConfig.enabled, roomConfig.mqttStateTopic, roomConfig.mqttCommandTopic);
 
@@ -93,7 +95,7 @@ void initRooms()
 
 void initValves()
 {
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < VALVES_COUNT; i++) {
         auto valveConfig = configMgr.getConfig()->valves[i];
         if (valveConfig.enabled) {
             ValveDriver* driver = nullptr;
@@ -146,14 +148,17 @@ void setup()
         config->boiler.driver = BOILER_DRIVER_ECTOCONTROLV2;
         config->boiler.modbusSpeed = 19200;
         config->boiler.modbusAddress = 0x7;
-        config->boiler.K = 1;
+        config->boiler.K = 1.2;
         config->boiler.B = 25;
+        config->boiler.P = 2;
+        config->boiler.I = 0.001;
         config->boiler.outdoorSensor = BOILER_OUTDOOR_SENSOR_MQTT;
         snprintf(config->boiler.outdoorSensorMqttTopic, 128, "bernoulli/0xa83a95ffc9ec/state");
         snprintf(config->boiler.outdoorSensorMqttField, 64, "temperature");
 
         // test tmp room
         config->rooms[0].enabled = true;
+        config->rooms[0].id = 0;
         snprintf(config->rooms[0].name, 32, "Cabinet");
         snprintf(config->rooms[0].mqttCommandTopic, MQTT_TOPIC_LEN, "prometey/%s/rooms/%d/set", EDUtils::getChipID(), 0);
         snprintf(config->rooms[0].mqttStateTopic, MQTT_TOPIC_LEN, "prometey/%s/rooms/%d/state", EDUtils::getChipID(), 0);
@@ -231,8 +236,7 @@ void setup()
         device,
         configMgr.getConfig()->mqttStateTopic,
         configMgr.getConfig()->mqttCommandTopic,
-        configMgr.getConfig()->boiler.K,
-        configMgr.getConfig()->boiler.B
+        configMgr.getConfig()->boiler
     );
     healthCheck.registerService(&boiler);
 

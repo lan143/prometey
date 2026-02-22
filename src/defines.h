@@ -21,6 +21,9 @@
 #define CONTROLLER_NAME "Prometey"
 #endif
 
+#define ROOMS_COUNT 8
+#define VALVES_COUNT 9
+
 const char deviceName[] = CONTROLLER_NAME;
 const char deviceModel[] = "KC868-A16";
 const char deviceManufacturer[] = "Kincony";

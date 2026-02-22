@@ -15,6 +15,7 @@ void Handler::init()
     _server->serveStatic("/jquery-3.6.0.min.js", SPIFFS, "/jquery-3.6.0.min.js");
     _server->serveStatic("/bootstrap.min.js", SPIFFS, "/bootstrap.min.js");
 
+    _boilerHandler->registerHandlers(_server);
     _healthCheck->registerHandlers(_server);
 
     _server->on("/api/wifi/list", HTTP_GET, [this](AsyncWebServerRequest *request) {

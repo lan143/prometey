@@ -10,6 +10,8 @@ struct BoilerConfig
     uint32_t modbusSpeed = 19200;
     float_t K = 0.0f;
     float_t B = 0.0f;
+    float_t P = 0.0f;
+    float_t I = 0.0f;
     char outdoorSensorMqttTopic[64] = {0};
     char outdoorSensorMqttField[16] = {0};
 };

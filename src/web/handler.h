@@ -11,6 +11,7 @@
 #include <healthcheck.h>
 
 #include "config.h"
+#include "boiler/boiler_handler.h"
 #include "network/network.h"
 
 class Handler {
@@ -18,17 +19,19 @@ public:
     Handler(
         EDConfig::ConfigMgr<Config>* configMgr,
         NetworkMgr* networkMgr,
-        EDHealthCheck::HealthCheck* healthCheck
+        EDHealthCheck::HealthCheck* healthCheck,
+        BoilerHandler* boilerHandler
     ) : _configMgr(configMgr), _networkMgr(networkMgr),
-        _healthCheck(healthCheck) {
+        _healthCheck(healthCheck), _boilerHandler(boilerHandler) {
         _server = new AsyncWebServer(80);
     }
 
     void init();
 
 private:
-    AsyncWebServer* _server;
-    EDConfig::ConfigMgr<Config>* _configMgr;
-    NetworkMgr* _networkMgr;
-    EDHealthCheck::HealthCheck* _healthCheck;
+    AsyncWebServer* _server = nullptr;
+    BoilerHandler* _boilerHandler = nullptr;
+    EDConfig::ConfigMgr<Config>* _configMgr = nullptr;
+    NetworkMgr* _networkMgr = nullptr;
+    EDHealthCheck::HealthCheck* _healthCheck = nullptr;
 };

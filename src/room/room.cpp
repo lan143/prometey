@@ -36,8 +36,8 @@ void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConf
 
     discoveryMgr->addSensor(
         device,
-        "Valve opening",
-        "valveOpening",
+        EDUtils::formatString("%s valve opening", config.name),
+        EDUtils::formatString("%svalveOpening", config.name),
         EDUtils::formatString("%d_room_valve_opening_%s_prometey", config.id, chipID)
     )
         ->setStateTopic(config.mqttStateTopic)
@@ -46,6 +46,7 @@ void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConf
 
     _stateMgr->getState().setValveOpening(100.0f);
     _stateMgr->getState().changeSetPoint(_state.setPoint);
+    _boiler->updateRoomSetPoint(_config.id, _state.setPoint);
 }
 
 void Room::update()
@@ -71,7 +72,7 @@ void Room::update()
         }
 
         _stateMgr->getState().setValveOpening(valvePercent);
-        _boiler->updateRoomTemperatureError(err);
+        _boiler->updateRoomTemperatureError(_config.id, err);
 
         _lastUpdateTime = millis();
     }

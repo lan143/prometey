@@ -1,3 +1,4 @@
+#include <Json.h>
 #include <Utils.h>
 #include <esp_log.h>
 
@@ -8,12 +9,9 @@ void Boiler::init(
     EDHA::Device* device,
     std::string stateTopic,
     std::string commandTopic,
-    float_t K,
-    float_t B
+    BoilerConfig config
 ) {
-    _K = K;
-    _kB = B;
-
+    _config = config;
     const char* chipID = EDUtils::getChipID();
 
     std::list<EDHA::Mode> climateModes;
@@ -26,7 +24,7 @@ void Boiler::init(
 
     discoveryMgr->addClimate(
         device,
-        "Climate",
+        "boiler",
         "climate",
         EDUtils::formatString("%s_boiler_prometey", chipID)
     )
@@ -255,7 +253,15 @@ void Boiler::updateAutoMode()
     }
 
     if (_lastAutoUpdateTime == 0 || (_lastAutoUpdateTime + 1200000) < millis()) {
-        auto setPoint = _K * (25 - _state.outdoorTemperature) + _kB;
+        auto dt = (float_t)millis() - (float_t)_lastAutoUpdateTime;
+        dt /= 1000.0f;
+
+        auto err = maxTemperatureErr();
+        auto setPoint = _config.K * (maxSetPoint() - _state.outdoorTemperature) + _config.B;
+        setPoint += _config.P * err;
+        _I = _I+err*dt*_config.I;
+        setPoint = constrain(setPoint + _I, 30, 70);
+
         if (setPoint > 30) {
             if (!_driver.setCentralHeatingSetPoint(setPoint)) {
                 ESP_LOGE("boiler", "failed to update central heating setpoint");

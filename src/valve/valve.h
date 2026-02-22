@@ -11,7 +11,11 @@ public:
     Valve(ValveDriver* driver) : _driver(driver) {}
 
     void init(ValveConfig config);
-    bool setOpening(uint8_t percent) { _closePercent = 100 - percent; }
+    bool setOpening(uint8_t percent)
+    {
+        _closePercent = 100 - percent;
+        return true;
+    }
     void update();
 
 private:

@@ -4,7 +4,8 @@
 #include <WiFi.h>
 #include <mqtt_config.h>
 
-#include "boiler/config.h"
+#include "defines.h"
+#include "boiler/boiler_config.h"
 #include "room/config.h"
 #include "valve/config.h"
 
@@ -42,6 +43,6 @@ struct Config
 
     BoilerConfig boiler;
 
-    RoomConfig rooms[8] = {};
-    ValveConfig valves[9] = {};
+    RoomConfig rooms[ROOMS_COUNT] = {};
+    ValveConfig valves[VALVES_COUNT] = {};
 };
