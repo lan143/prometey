@@ -16,7 +16,7 @@ void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConf
         device,
         EDUtils::formatString("Climate %s", config.name),
         "climate",
-        EDUtils::formatString("%s_room_%d_prometey", config.id, chipID)
+        EDUtils::formatString("%d_room_%s_prometey", config.id, chipID)
     )
         ->setCurrentTemperatureTemplate("{{ value_json.currentTemperature }}")
         ->setCurrentTemperatureTopic(config.mqttStateTopic)
@@ -33,6 +33,19 @@ void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConf
         ->setModes(climateModes)
         ->setPayloadOff("false")
         ->setPayloadOn("true");
+
+    discoveryMgr->addSensor(
+        device,
+        "Valve opening",
+        "valveOpening",
+        EDUtils::formatString("%d_room_valve_opening_%s_prometey", config.id, chipID)
+    )
+        ->setStateTopic(config.mqttStateTopic)
+        ->setValueTemplate("{{ value_json.valveOpening }}")
+        ->setUnitOfMeasurement("%");
+
+    _stateMgr->getState().setValveOpening(100.0f);
+    _stateMgr->getState().changeSetPoint(_state.setPoint);
 }
 
 void Room::update()
@@ -57,6 +70,7 @@ void Room::update()
             valve->setOpening(valvePercent);
         }
 
+        _stateMgr->getState().setValveOpening(valvePercent);
         _boiler->updateRoomTemperatureError(err);
 
         _lastUpdateTime = millis();

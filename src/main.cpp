@@ -21,6 +21,8 @@
 #include "consumers/room_temperature_consumer.h"
 #include "network/network.h"
 #include "room/room.h"
+#include "state/room_producer.h"
+#include "state/room_state.h"
 #include "state/state.h"
 #include "state/producer.h"
 #include "valve/valve.h"
@@ -29,8 +31,8 @@
 #include "web/handler.h"
 
 EDConfig::ConfigMgr<Config> configMgr(EEPROM_SIZE);
-NetworkMgr networkMgr(configMgr.getConfig(), true);
-EDMQTT::MQTT mqtt(configMgr.getConfig().mqtt);
+NetworkMgr networkMgr(true);
+EDMQTT::MQTT mqtt;
 
 ModbusClient modbus(Serial2);
 
@@ -53,14 +55,26 @@ PCF8574 mos1(0x24);
 PCF8574 mos2(0x25);
 
 std::list<Room*> rooms;
+std::list<EDUtils::StateMgr<RoomMQTTState>*> roomStateMgrs;
 std::list<Valve*> valves;
 
 void initRooms()
 {
-    for (int i = 0; i < 10; i++) {
-        auto roomConfig = configMgr.getConfig().rooms[i];
+    for (int i = 0; i < 8; i++) {
+        auto roomConfig = configMgr.getConfig()->rooms[i];
+        ESP_LOGD("main", "room[%d] enabled=%d, mqttStateTopic='%s', mqttCommandTopic='%s'", i, roomConfig.enabled, roomConfig.mqttStateTopic, roomConfig.mqttCommandTopic);
+
         if (roomConfig.enabled) {
-            auto room = new Room(&boiler);
+            auto roomStateProducer = new RoomStateProducer(&mqtt);
+            roomStateProducer->init(roomConfig.mqttStateTopic);
+
+            auto roomStateMgr = new EDUtils::StateMgr<RoomMQTTState>(roomStateProducer);
+            roomStateMgrs.push_back(roomStateMgr);
+
+            ESP_LOGD("main", "Free heap: %u", ESP.getFreeHeap());
+            ESP_LOGD("main", "sizeof(Room) = %u", sizeof(Room));
+
+            auto room = new Room(&boiler, roomStateMgr);
             room->init(&discoveryMgr, device, roomConfig);
             rooms.push_back(room);
 
@@ -79,8 +93,8 @@ void initRooms()
 
 void initValves()
 {
-    for (int i = 0; i < 12; i++) {
-        auto valveConfig = configMgr.getConfig().valves[i];
+    for (int i = 0; i < 9; i++) {
+        auto valveConfig = configMgr.getConfig()->valves[i];
         if (valveConfig.enabled) {
             ValveDriver* driver = nullptr;
             switch (valveConfig.type) {
@@ -112,46 +126,72 @@ void setup()
 
     Serial.begin(SERIAL_SPEED);
 
+    esp_log_level_set("*", ESP_LOG_VERBOSE);
     ESP_LOGI("setup", "Prometey");
     ESP_LOGI("setup", "start");
 
+    ESP_LOGI("setup", "spiffs begin");
     SPIFFS.begin(true);
 
-    configMgr.setDefault([](Config& config) {
-        snprintf(config.wifiAPSSID, WIFI_SSID_LEN, "Prometey_%s", EDUtils::getMacAddress().c_str());
-        snprintf(config.mqttStateTopic, MQTT_TOPIC_LEN, "prometey/%s/state", EDUtils::getChipID());
-        snprintf(config.mqttCommandTopic, MQTT_TOPIC_LEN, "prometey/%s/set", EDUtils::getChipID());;
-        snprintf(config.mqttHADiscoveryPrefix, MQTT_TOPIC_LEN, "homeassistant");
+    ESP_LOGD("setup", "config size: %u bytes", sizeof(Config));
 
-        config.boiler.driver = BOILER_DRIVER_ECTOCONTROLV2;
-        config.boiler.modbusSpeed = 19200;
-        config.boiler.modbusAddress = 0x7;
-        config.boiler.K = 1;
-        config.boiler.B = 25;
-        config.boiler.outdoorSensor = BOILER_OUTDOOR_SENSOR_MQTT;
-        snprintf(config.boiler.outdoorSensorMqttTopic, 128, "bernoulli/0xa83a95ffc9ec/state");
-        snprintf(config.boiler.outdoorSensorMqttField, 64, "temperature");
+    ESP_LOGI("setup", "set default configs");
+    configMgr.setDefault([](Config* config) {
+        snprintf(config->wifiAPSSID, WIFI_SSID_LEN, "Prometey_%s", EDUtils::getMacAddress().c_str());
+        snprintf(config->mqttStateTopic, MQTT_TOPIC_LEN, "prometey/%s/state", EDUtils::getChipID());
+        snprintf(config->mqttCommandTopic, MQTT_TOPIC_LEN, "prometey/%s/set", EDUtils::getChipID());
+        snprintf(config->mqttHADiscoveryPrefix, MQTT_TOPIC_LEN, "homeassistant");
+
+        // tmp
+        config->boiler.driver = BOILER_DRIVER_ECTOCONTROLV2;
+        config->boiler.modbusSpeed = 19200;
+        config->boiler.modbusAddress = 0x7;
+        config->boiler.K = 1;
+        config->boiler.B = 25;
+        config->boiler.outdoorSensor = BOILER_OUTDOOR_SENSOR_MQTT;
+        snprintf(config->boiler.outdoorSensorMqttTopic, 128, "bernoulli/0xa83a95ffc9ec/state");
+        snprintf(config->boiler.outdoorSensorMqttField, 64, "temperature");
+
+        // test tmp room
+        config->rooms[0].enabled = true;
+        snprintf(config->rooms[0].name, 32, "Cabinet");
+        snprintf(config->rooms[0].mqttCommandTopic, MQTT_TOPIC_LEN, "prometey/%s/rooms/%d/set", EDUtils::getChipID(), 0);
+        snprintf(config->rooms[0].mqttStateTopic, MQTT_TOPIC_LEN, "prometey/%s/rooms/%d/state", EDUtils::getChipID(), 0);
+        config->rooms[0].temperatureSensorType = ROOM_TEMPERATURE_SENSOR_TYPE_MQTT;
+        snprintf(config->rooms[0].mqttTemperatureSensorTopic, 128, "newton/0x10f691daf380/state");
+        snprintf(config->rooms[0].mqttTemperatureSensorField, 64, "temperature");
+        config->rooms[0].kP = 1.0f;
+        config->rooms[0].kI = 0.05f;
+        config->rooms[0].kD = 0.5f;
     });
+
+    ESP_LOGI("setup", "load config");
     configMgr.load();
 
-    Serial2.begin(configMgr.getConfig().boiler.modbusSpeed, SERIAL_8N1, RS485RX, RS485TX);
+    ESP_LOGI("setup", "init modbus");
+    Serial2.begin(configMgr.getConfig()->boiler.modbusSpeed, SERIAL_8N1, RS485RX, RS485TX);
     modbus.begin();
     modbus.setTypeMB(MODBUS_RTU);
     modbus.setTimeout(200);
 
+    ESP_LOGI("setup", "init i2c");
     Wire.begin(4, 5);
     Wire.setClock(100000);
 
+    ESP_LOGI("setup", "init PCF8574");
     mos1.begin();
     mos2.begin();
     //mos2.write(7, LOW); 
 
-    networkMgr.init();
+    ESP_LOGI("setup", "init network");
+    networkMgr.init(configMgr.getConfig());
 
+    ESP_LOGI("setup", "init OTA");
     ArduinoOTA.setPassword("somestrongpassword");
     ArduinoOTA.begin();
 
-    mqtt.init();
+    ESP_LOGI("setup", "mqtt init");
+    mqtt.init(configMgr.getConfig()->mqtt);
     networkMgr.OnConnect([&](bool isConnected) {
         if (isConnected) {
             mqtt.connect();
@@ -161,16 +201,19 @@ void setup()
     });
     healthCheck.registerService(&mqtt);
 
+    ESP_LOGI("setup", "api handler init");
     handler.init();
 
+    ESP_LOGI("setup", "discoveryMgr init");
     discoveryMgr.init(
-        configMgr.getConfig().mqttHADiscoveryPrefix,
-        configMgr.getConfig().mqttIsHADiscovery,
+        configMgr.getConfig()->mqttHADiscoveryPrefix,
+        configMgr.getConfig()->mqttIsHADiscovery,
         [](std::string topicName, std::string payload) {
             return mqtt.publish(topicName.c_str(), payload.c_str(), true);
         }
     );
 
+    ESP_LOGI("setup", "create HA device");
     device = discoveryMgr.addDevice();
     device->setHWVersion(deviceHWVersion)
         ->setSWVersion(deviceFWVersion)
@@ -178,26 +221,32 @@ void setup()
         ->setName(deviceName)
         ->setManufacturer(deviceManufacturer);
 
-    stateProducer.init(configMgr.getConfig().mqttStateTopic);
+    ESP_LOGI("setup", "state producer init");
+    stateProducer.init(configMgr.getConfig()->mqttStateTopic);
 
-    boilerDriver.init(configMgr.getConfig().boiler.modbusAddress);
+    ESP_LOGI("setup", "init boiler");
+    boilerDriver.init(configMgr.getConfig()->boiler.modbusAddress);
     boiler.init(
         &discoveryMgr,
         device,
-        configMgr.getConfig().mqttStateTopic,
-        configMgr.getConfig().mqttCommandTopic,
-        configMgr.getConfig().boiler.K,
-        configMgr.getConfig().boiler.B
+        configMgr.getConfig()->mqttStateTopic,
+        configMgr.getConfig()->mqttCommandTopic,
+        configMgr.getConfig()->boiler.K,
+        configMgr.getConfig()->boiler.B
     );
     healthCheck.registerService(&boiler);
 
-    commandConsumer.init(configMgr.getConfig().mqttCommandTopic);
+    ESP_LOGI("setup", "command consumer init");
+    commandConsumer.init(configMgr.getConfig()->mqttCommandTopic);
     mqtt.subscribe(&commandConsumer);
 
-    outdoorTemperatureConsumer.init(configMgr.getConfig().boiler.outdoorSensorMqttTopic, configMgr.getConfig().boiler.outdoorSensorMqttField);
+    ESP_LOGI("setup", "outdoor temperature consumer init");
+    outdoorTemperatureConsumer.init(configMgr.getConfig()->boiler.outdoorSensorMqttTopic, configMgr.getConfig()->boiler.outdoorSensorMqttField);
     mqtt.subscribe(&outdoorTemperatureConsumer);
 
+    ESP_LOGI("setup", "init rooms");
     initRooms();
+    ESP_LOGI("setup", "init valves");
     initValves();
 
     ESP_LOGI("setup", "complete");
@@ -219,5 +268,9 @@ void loop()
 
     for (auto valve : valves) {
         valve->update();
+    }
+
+    for (auto roomStateMgr : roomStateMgrs) {
+        roomStateMgr->loop();
     }
 }

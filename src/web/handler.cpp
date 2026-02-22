@@ -37,18 +37,18 @@ void Handler::init()
         AsyncResponseStream *response = request->beginResponseStream("application/json");
 
         std::string payload = EDUtils::buildJson([this](JsonObject entity) {
-            Config& config = _configMgr->getConfig();
+            Config* config = _configMgr->getConfig();
 
-            entity["wifiSSID"] = config.wifiSSID;
-            entity["wifiPassword"] = config.wifiPassword;
-            entity["mqttHost"] = config.mqtt.host;
-            entity["mqttPort"] = config.mqtt.port;
-            entity["mqttLogin"] = config.mqtt.login;
-            entity["mqttPassword"] = config.mqtt.password;
-            entity["mqttIsHADiscovery"] = config.mqttIsHADiscovery;
-            entity["mqttHADiscoveryPrefix"] = config.mqttHADiscoveryPrefix;
-            entity["mqttCommandTopic"] = config.mqttCommandTopic;
-            entity["mqttStateTopic"] = config.mqttStateTopic;
+            entity["wifiSSID"] = config->wifiSSID;
+            entity["wifiPassword"] = config->wifiPassword;
+            entity["mqttHost"] = config->mqtt.host;
+            entity["mqttPort"] = config->mqtt.port;
+            entity["mqttLogin"] = config->mqtt.login;
+            entity["mqttPassword"] = config->mqtt.password;
+            entity["mqttIsHADiscovery"] = config->mqttIsHADiscovery;
+            entity["mqttHADiscoveryPrefix"] = config->mqttHADiscoveryPrefix;
+            entity["mqttCommandTopic"] = config->mqttCommandTopic;
+            entity["mqttStateTopic"] = config->mqttStateTopic;
         });
 
         response->write(payload.c_str());
@@ -74,10 +74,10 @@ void Handler::init()
             return;
         }
 
-        Config& config = _configMgr->getConfig();
-        std::strcpy(config.wifiSSID, wifiSSID->value().c_str());
-        std::strcpy(config.wifiPassword, wifiPassword->value().c_str());
-        config.isAPMode = false;
+        Config* config = _configMgr->getConfig();
+        std::strcpy(config->wifiSSID, wifiSSID->value().c_str());
+        std::strcpy(config->wifiPassword, wifiPassword->value().c_str());
+        config->isAPMode = false;
 
         _configMgr->store();
 
@@ -96,7 +96,7 @@ void Handler::init()
             return;
         }
 
-        Config& config = _configMgr->getConfig();
+        Config* config = _configMgr->getConfig();
         const AsyncWebParameter* host = request->getParam("host", true);
         const AsyncWebParameter* port = request->getParam("port", true);
         const AsyncWebParameter* login = request->getParam("login", true);
@@ -147,18 +147,18 @@ void Handler::init()
             return;
         }
 
-        strcpy(config.mqtt.host, host->value().c_str());
-        config.mqtt.port = (uint16_t)mqttPort;
-        strcpy(config.mqtt.login, login->value().c_str());
-        strcpy(config.mqtt.password, password->value().c_str());
-        strcpy(config.mqttHADiscoveryPrefix, haDiscoveryPrefix->value().c_str());
-        strcpy(config.mqttStateTopic, stateTopic->value().c_str());
-        strcpy(config.mqttCommandTopic, commandTopic->value().c_str());
+        strcpy(config->mqtt.host, host->value().c_str());
+        config->mqtt.port = (uint16_t)mqttPort;
+        strcpy(config->mqtt.login, login->value().c_str());
+        strcpy(config->mqtt.password, password->value().c_str());
+        strcpy(config->mqttHADiscoveryPrefix, haDiscoveryPrefix->value().c_str());
+        strcpy(config->mqttStateTopic, stateTopic->value().c_str());
+        strcpy(config->mqttCommandTopic, commandTopic->value().c_str());
 
         if (strcmp(ishaDiscoveryEnabled->value().c_str(), "true") == 0) {
-            config.mqttIsHADiscovery = true;
+            config->mqttIsHADiscovery = true;
         } else {
-            config.mqttIsHADiscovery = false;
+            config->mqttIsHADiscovery = false;
         }
 
         _configMgr->store();

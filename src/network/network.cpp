@@ -4,9 +4,10 @@
 #include "defines.h"
 #include "network.h"
 
-void NetworkMgr::init()
+void NetworkMgr::init(Config* config)
 {
     ESP_LOGI("network", "init start");
+    _config = config;
 
     WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info) {
         switch (event) {
@@ -31,7 +32,7 @@ void NetworkMgr::init()
 
     if (_hasEth) {
         runEthernet();
-    } else if (!_config.isAPMode) {
+    } else if (!_config->isAPMode) {
         runWifi();
     } else {
         runWifiAP();
@@ -60,7 +61,7 @@ void NetworkMgr::loop()
         if (_failedConnectCounts >= 30) {
             switch (_mode) {
                 case MODE_ETHERNET:
-                    if (!_config.isAPMode) {
+                    if (!_config->isAPMode) {
                         runWifi();
                     } else {
                         runWifiAP();
@@ -90,7 +91,7 @@ void NetworkMgr::runWifi()
     ESP_LOGI("network", "run in wifi client mode");
 
     WiFi.mode(WIFI_STA);
-    WiFi.begin(_config.wifiSSID, _config.wifiPassword);
+    WiFi.begin(_config->wifiSSID, _config->wifiPassword);
     _mode = MODE_WIFI;
 }
 
@@ -99,6 +100,6 @@ void NetworkMgr::runWifiAP()
     ESP_LOGI("wifi", "run in wifi access point mode");
 
     WiFi.mode(WIFI_AP);
-    WiFi.softAP(_config.wifiAPSSID, _config.wifiAPHasPassword ? _config.wifiAPPassword : NULL);
+    WiFi.softAP(_config->wifiAPSSID, _config->wifiAPHasPassword ? _config->wifiAPPassword : NULL);
     _mode = MODE_WIFI_AP;
 }

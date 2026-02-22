@@ -42,6 +42,6 @@ struct Config
 
     BoilerConfig boiler;
 
-    RoomConfig rooms[10] = {};
-    ValveConfig valves[12] = {};
+    RoomConfig rooms[8] = {};
+    ValveConfig valves[9] = {};
 };

@@ -16,9 +16,9 @@ typedef std::function<void(bool isConnected)> ConnectFunction;
 
 class NetworkMgr {
 public:
-    NetworkMgr(Config& config, bool hasEth) : _config(config), _hasEth(hasEth) {}
+    NetworkMgr(bool hasEth) : _hasEth(hasEth) {}
 
-    void init();
+    void init(Config* config);
     void loop();
     bool isConnected() { return _isWiFiConnected || _isEthernetConnected; }
     void OnConnect(ConnectFunction fn) { _connectCallbacks.push_back(std::move(fn)); }
@@ -29,7 +29,7 @@ private:
     void runWifiAP();
 
 private:
-    Config& _config;
+    Config* _config;
     bool _isWiFiConnected = false;
     bool _isEthernetConnected = false;
     bool _prevIsConnected = false;
