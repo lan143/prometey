@@ -142,6 +142,7 @@ RoomConfig UpdateRoomRequest::asConfig()
     config.enabled = _enabled.Value();
     config.temperatureSensorType = _temperatureSensorType.Value();
     strcpy(config.name, _name.Value().c_str());
+    strcpy(config.mqttCommandTopic, _mqttCommandTopic.Value().c_str());
     strcpy(config.mqttStateTopic, _mqttStateTopic.Value().c_str());
     strcpy(config.mqttTemperatureSensorTopic, _mqttTemperatureSensorTopic.Value().c_str());
     strcpy(config.mqttTemperatureSensorField, _mqttTemperatureSensorField.Value().c_str());

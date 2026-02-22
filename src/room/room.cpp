@@ -44,6 +44,7 @@ void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConf
         ->setValueTemplate("{{ value_json.valveOpening }}")
         ->setUnitOfMeasurement("%");
 
+    _stateMgr->getState().setMode(_state.active ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
     _stateMgr->getState().setValveOpening(100.0f);
     _stateMgr->getState().changeSetPoint(_state.setPoint);
     _boiler->updateRoomSetPoint(_config.id, _state.setPoint);
@@ -55,7 +56,7 @@ void Room::update()
         return;
     }
 
-    if ((_lastUpdateTime + 1800000) < millis()) { // loop every 30 minutes
+    if (_lastUpdateTime == 0 || (_lastUpdateTime + 1800000) < millis()) { // loop every 30 minutes
         auto now = (float_t)millis() / 1000.0f;
         auto dt = now - _state.prevTime;
         _state.prevTime = now;

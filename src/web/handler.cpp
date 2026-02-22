@@ -17,6 +17,7 @@ void Handler::init()
 
     _boilerHandler->registerHandlers(_server);
     _roomHandler->registerHandlers(_server);
+    _valveHandler->registerHandlers(_server);
     _healthCheck->registerHandlers(_server);
 
     _server->on("/api/wifi/list", HTTP_GET, [this](AsyncWebServerRequest *request) {

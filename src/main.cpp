@@ -27,6 +27,7 @@
 #include "state/room_state.h"
 #include "state/state.h"
 #include "state/producer.h"
+#include "valve/api/valve_handler.h"
 #include "valve/valve.h"
 #include "valve/driver.h"
 #include "valve/drivers/PCF8574_valve.h"
@@ -53,7 +54,8 @@ CommandConsumer commandConsumer(&boiler);
 
 BoilerHandler boilerHandler(&configMgr);
 RoomHandler roomHandler(&configMgr);
-Handler handler(&configMgr, &networkMgr, &healthCheck, &boilerHandler, &roomHandler);
+ValveHandler valveHandler(&configMgr);
+Handler handler(&configMgr, &networkMgr, &healthCheck, &boilerHandler, &roomHandler, &valveHandler);
 
 PCF8574 mos1(0x24);
 PCF8574 mos2(0x25);
@@ -74,9 +76,6 @@ void initRooms()
 
             auto roomStateMgr = new EDUtils::StateMgr<RoomMQTTState>(roomStateProducer);
             roomStateMgrs.push_back(roomStateMgr);
-
-            ESP_LOGD("main", "Free heap: %u", ESP.getFreeHeap());
-            ESP_LOGD("main", "sizeof(Room) = %u", sizeof(Room));
 
             auto room = new Room(&boiler, roomStateMgr);
             room->init(&discoveryMgr, device, roomConfig);
@@ -149,19 +148,6 @@ void setup()
         for (int i = 0; i < ROOMS_COUNT; i++) {
             config->rooms[0].id = i;
         }
-
-        // test tmp room
-        config->rooms[0].enabled = true;
-        config->rooms[0].id = 0;
-        snprintf(config->rooms[0].name, 32, "Cabinet");
-        snprintf(config->rooms[0].mqttCommandTopic, MQTT_TOPIC_LEN, "prometey/%s/rooms/%d/set", EDUtils::getChipID(), 0);
-        snprintf(config->rooms[0].mqttStateTopic, MQTT_TOPIC_LEN, "prometey/%s/rooms/%d/state", EDUtils::getChipID(), 0);
-        config->rooms[0].temperatureSensorType = ROOM_TEMPERATURE_SENSOR_TYPE_MQTT;
-        snprintf(config->rooms[0].mqttTemperatureSensorTopic, 128, "newton/0x10f691daf380/state");
-        snprintf(config->rooms[0].mqttTemperatureSensorField, 64, "temperature");
-        config->rooms[0].kP = 1.0f;
-        config->rooms[0].kI = 0.05f;
-        config->rooms[0].kD = 0.5f;
     });
 
     ESP_LOGI("setup", "load config");

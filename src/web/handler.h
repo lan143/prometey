@@ -14,6 +14,7 @@
 #include "boiler/boiler_handler.h"
 #include "network/network.h"
 #include "room/api/room_handler.h"
+#include "valve/api/valve_handler.h"
 
 class Handler {
 public:
@@ -22,9 +23,11 @@ public:
         NetworkMgr* networkMgr,
         EDHealthCheck::HealthCheck* healthCheck,
         BoilerHandler* boilerHandler,
-        RoomHandler* roomHandler
+        RoomHandler* roomHandler,
+        ValveHandler* valveHandler
     ) : _configMgr(configMgr), _networkMgr(networkMgr),
-        _healthCheck(healthCheck), _boilerHandler(boilerHandler), _roomHandler(roomHandler) {
+        _healthCheck(healthCheck), _boilerHandler(boilerHandler), _roomHandler(roomHandler),
+        _valveHandler(valveHandler) {
         _server = new AsyncWebServer(80);
     }
 
@@ -37,4 +40,5 @@ private:
     NetworkMgr* _networkMgr = nullptr;
     EDHealthCheck::HealthCheck* _healthCheck = nullptr;
     RoomHandler* _roomHandler = nullptr;
+    ValveHandler* _valveHandler = nullptr;
 };

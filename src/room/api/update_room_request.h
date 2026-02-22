@@ -5,14 +5,7 @@
 
 #include "room/config.h"
 #include "room/enums.h"
-
-struct ValidateErr
-{
-    ValidateErr(bool v, std::string m) : valid(v), message(m) {}
-
-    bool valid = false;
-    std::string message;
-};
+#include "web/validate.h"
 
 class UpdateRoomRequest
 {
