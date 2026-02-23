@@ -19,7 +19,7 @@ void Valve::update()
     if (_nextUpdateTime < millis()) {
         if (_driver->isClosing()) {
             _driver->changeState(false);
-            _nextUpdateTime = _config.windowTime - _closeTime;
+            _nextUpdateTime = millis() + (_config.windowTime - _closeTime);
             _closeTime = 0;
         } else {
             _closeTime = _config.windowTime * _closePercent / 100;

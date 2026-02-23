@@ -10,4 +10,19 @@ struct RoomState
     float_t I = 0.0f;
     float_t prevErr = 0.0f;
     uint64_t prevTime = 0;
+
+    bool operator==(RoomState& other)
+    {
+        return active == other.active
+            && currentTemperature != other.currentTemperature
+            && setPoint != other.setPoint
+            && I != other.I
+            && prevErr != other.prevErr
+            && prevTime != other.prevTime;
+    }
+
+    bool operator!=(RoomState& other)
+    {
+        return !((*this) == other);
+    }
 };

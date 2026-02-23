@@ -13,7 +13,12 @@ public:
     void init(ValveConfig config);
     bool setOpening(uint8_t percent)
     {
+        if (percent > 100) {
+            percent = 100;
+        }
+
         _closePercent = 100 - percent;
+        
         return true;
     }
     void update();

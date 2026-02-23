@@ -11,4 +11,19 @@ struct BoilerState {
     float_t outdoorTemperature = 0.0f;
     float_t maxRoomTemperatureErr = 0.0f;
     float_t maxRoomSetPoint = 0.0f;
+
+    bool operator==(BoilerState& other)
+    {
+        return mode == other.mode
+            && centralHeatingSetPoint != other.centralHeatingSetPoint
+            && hotWaterSetPoint != other.hotWaterSetPoint
+            && outdoorTemperature != other.outdoorTemperature
+            && maxRoomTemperatureErr != other.maxRoomTemperatureErr
+            && maxRoomSetPoint != other.maxRoomSetPoint;
+    }
+
+    bool operator!=(BoilerState& other)
+    {
+        return !((*this) == other);
+    }
 };

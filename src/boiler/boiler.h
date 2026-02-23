@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ConfigMgr.h>
 #include <ESPAsyncWebServer.h>
 #include <discovery.h>
 #include <ready.h>
@@ -19,8 +20,9 @@ class Boiler : public EDHealthCheck::Ready
 public:
     Boiler(
         Driver& driver,
+        EDConfig::ConfigMgr<Config>* configMgr,
         EDUtils::StateMgr<State>* stateMgr
-    ) : _driver(driver), _stateMgr(stateMgr) {
+    ) : _driver(driver), _configMgr(configMgr), _stateMgr(stateMgr) {
         for (int i = 0; i < ROOMS_COUNT; i++) {
             _roomTemperatureErr[i] = EDUtils::Nullable<float_t>(false, 0.0f);
             _roomSetPoints[i] = EDUtils::Nullable<float_t>(false, 0.0f);
@@ -60,6 +62,7 @@ public:
 
 private:
     void updateAutoMode();
+    void saveState();
 
     float_t maxTemperatureErr()
     {
@@ -99,6 +102,7 @@ private:
     BoilerState _state;
     BoilerConfig _config;
     uint64_t _lastUpdateTime = 0;
+    uint64_t _lastSaveStateTime = 0;
     uint64_t _lastAutoUpdateTime = 0;
     uint64_t _onlineFaultCount = 0;
 
@@ -114,5 +118,6 @@ private:
 
 private:
     Driver& _driver;
+    EDConfig::ConfigMgr<Config>* _configMgr = nullptr;
     EDUtils::StateMgr<State>* _stateMgr = nullptr;
 };

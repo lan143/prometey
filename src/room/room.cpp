@@ -5,6 +5,8 @@
 void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConfig config)
 {
     _config = config;
+    _state = _configMgr->getConfig()->roomStates[config.id];
+
     const char* chipID = EDUtils::getChipID();
 
     std::list<EDHA::Mode> climateModes;
@@ -52,11 +54,17 @@ void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConf
 
 void Room::update()
 {
+    calculateValvePosition();
+    saveState();
+}
+
+void Room::calculateValvePosition()
+{
     if (!_state.active || _state.currentTemperature == 0.0f) {
         return;
     }
 
-    if (_lastUpdateTime == 0 || (_lastUpdateTime + 1800000) < millis()) { // loop every 30 minutes
+    if (_lastUpdateTime == 0 || (_lastUpdateTime + 600000) < millis()) { // loop every 10 minutes
         auto now = (float_t)millis() / 1000.0f;
         auto dt = now - _state.prevTime;
         _state.prevTime = now;
@@ -76,5 +84,20 @@ void Room::update()
         _boiler->updateRoomTemperatureError(_config.id, err);
 
         _lastUpdateTime = millis();
+    }
+}
+
+void Room::saveState()
+{
+    if ((_lastSaveStateTime + 60000 + _config.id * 1000) < millis()) {
+        if (_configMgr->getConfig()->roomStates[_config.id] != _state) {
+            _configMgr->getConfig()->roomStates[_config.id] = _state;
+
+            if (!_configMgr->store()) {
+                ESP_LOGE("room", "failed to save state");
+            }
+        }
+
+        _lastSaveStateTime = millis();
     }
 }

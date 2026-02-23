@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <list>
+#include <ConfigMgr.h>
 #include <state/state_mgr.h>
 
 #include "boiler/boiler.h"
@@ -13,7 +14,7 @@
 class Room
 {
 public:
-    Room(Boiler* boiler, EDUtils::StateMgr<RoomMQTTState>* stateMgr) : _boiler(boiler), _stateMgr(stateMgr) {}
+    Room(Boiler* boiler, EDConfig::ConfigMgr<Config>* configMgr, EDUtils::StateMgr<RoomMQTTState>* stateMgr) : _boiler(boiler), _configMgr(configMgr), _stateMgr(stateMgr) {}
 
     void init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConfig config);
     void addValve(Valve* valve) { _valves.push_back(valve); }
@@ -42,11 +43,17 @@ public:
     void update();
 
 private:
+    void calculateValvePosition();
+    void saveState();
+
+private:
     RoomConfig _config;
     RoomState _state;
     uint64_t _lastUpdateTime = 0;
+    uint64_t _lastSaveStateTime = 0;
 
     std::list<Valve*> _valves;
     Boiler* _boiler = nullptr;
+    EDConfig::ConfigMgr<Config>* _configMgr = nullptr;
     EDUtils::StateMgr<RoomMQTTState>* _stateMgr = nullptr;
 };

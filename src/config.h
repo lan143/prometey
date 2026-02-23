@@ -6,7 +6,9 @@
 
 #include "defines.h"
 #include "boiler/boiler_config.h"
+#include "boiler/state.h"
 #include "room/config.h"
+#include "room/state.h"
 #include "valve/config.h"
 
 #define CURRENT_VERSION 1
@@ -42,7 +44,9 @@ struct Config
     char mqttStateTopic[MQTT_TOPIC_LEN] = {0};
 
     BoilerConfig boiler;
+    BoilerState boilerState;
 
     RoomConfig rooms[ROOMS_COUNT] = {};
+    RoomState roomStates[ROOMS_COUNT] = {};
     ValveConfig valves[VALVES_COUNT] = {};
 };

@@ -47,7 +47,7 @@ StateProducer stateProducer(&mqtt);
 EDUtils::StateMgr<State> stateMgr(&stateProducer);
 
 EctoControlAdapterV2 boilerDriver(modbus); 
-Boiler boiler(boilerDriver, &stateMgr);
+Boiler boiler(boilerDriver, &configMgr, &stateMgr);
 OutdoorTemperatureConsumer outdoorTemperatureConsumer(&boiler);
 
 CommandConsumer commandConsumer(&boiler);
@@ -77,7 +77,7 @@ void initRooms()
             auto roomStateMgr = new EDUtils::StateMgr<RoomMQTTState>(roomStateProducer);
             roomStateMgrs.push_back(roomStateMgr);
 
-            auto room = new Room(&boiler, roomStateMgr);
+            auto room = new Room(&boiler, &configMgr, roomStateMgr);
             room->init(&discoveryMgr, device, roomConfig);
             rooms.push_back(room);
 
@@ -136,9 +136,6 @@ void setup()
     ESP_LOGI("setup", "spiffs begin");
     SPIFFS.begin(true);
 
-    ESP_LOGD("setup", "config size: %u bytes", sizeof(Config));
-
-    ESP_LOGI("setup", "set default configs");
     configMgr.setDefault([](Config* config) {
         snprintf(config->wifiAPSSID, WIFI_SSID_LEN, "Prometey_%s", EDUtils::getMacAddress().c_str());
         snprintf(config->mqttStateTopic, MQTT_TOPIC_LEN, "prometey/%s/state", EDUtils::getChipID());

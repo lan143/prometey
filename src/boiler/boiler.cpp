@@ -12,6 +12,7 @@ void Boiler::init(
     BoilerConfig config
 ) {
     _config = config;
+    _state = _configMgr->getConfig()->boilerState;
 
     const char* chipID = EDUtils::getChipID();
 
@@ -118,8 +119,6 @@ void Boiler::init(
         ->setValueTemplate("{{ value_json.isFault }}")
         ->setPayloadOn("true")
         ->setPayloadOff("false");
-
-    setCentralHeatingMode(CENTRAL_HEATING_MODE_AUTO); // tmp
 }
 
 void Boiler::setCentralHeatingMode(CentralHeatingMode mode)
@@ -232,6 +231,7 @@ void Boiler::update()
     }
 
     updateAutoMode();
+    saveState();
 }
 
 EDHealthCheck::ReadyResult Boiler::ready()
@@ -295,5 +295,19 @@ void Boiler::updateAutoMode()
         }
 
         _lastAutoUpdateTime = millis();
+    }
+}
+
+void Boiler::saveState()
+{
+    if ((_lastSaveStateTime + 60000) < millis()) {
+        if (_configMgr->getConfig()->boilerState != _state) {
+            _configMgr->getConfig()->boilerState = _state;
+            if (!_configMgr->store()) {
+                ESP_LOGE("boiler", "failed to save boiler state");
+            }
+        }
+
+        _lastSaveStateTime = millis();
     }
 }
