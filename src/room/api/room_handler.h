@@ -6,6 +6,7 @@
 #include <Utils.h>
 
 #include "config.h"
+#include "room/room.h"
 #include "room/api/update_room_request.h"
 
 class RoomHandler

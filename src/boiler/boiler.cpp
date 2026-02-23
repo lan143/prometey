@@ -26,8 +26,8 @@ void Boiler::init(
 
     discoveryMgr->addClimate(
         device,
+        "Boiler",
         "boiler",
-        "climate",
         EDUtils::formatString("%s_boiler_prometey", chipID)
     )
         ->setCurrentTemperatureTemplate("{{ value_json.centralHeatingCurrentTemperature }}")
@@ -265,8 +265,8 @@ void Boiler::updateAutoMode()
 
         auto setPoint = _config.K * (maxSP - _state.outdoorTemperature) + _config.B;
         setPoint += _config.P * err;
-        _I = constrain(_I+err*dt*_config.I, -70, 70);
-        setPoint = constrain(setPoint + _I, 30, 70);
+        _state.I = constrain(_state.I+err*dt*_config.I, -70, 70);
+        setPoint = constrain(setPoint + _state.I, 30, 70);
 
         if (setPoint > 30) {
             if (!_driver.setCentralHeatingSetPoint(setPoint)) {

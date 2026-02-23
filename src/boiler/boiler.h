@@ -114,7 +114,6 @@ private:
 
     EDUtils::Nullable<float_t> _roomTemperatureErr[ROOMS_COUNT];
     EDUtils::Nullable<float_t> _roomSetPoints[ROOMS_COUNT];
-    float_t _I = 0.0f;
 
 private:
     Driver& _driver;

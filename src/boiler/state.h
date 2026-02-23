@@ -11,6 +11,7 @@ struct BoilerState {
     float_t outdoorTemperature = 0.0f;
     float_t maxRoomTemperatureErr = 0.0f;
     float_t maxRoomSetPoint = 0.0f;
+    float_t I = 0.0f;
 
     bool operator==(BoilerState& other)
     {
@@ -19,7 +20,8 @@ struct BoilerState {
             && hotWaterSetPoint != other.hotWaterSetPoint
             && outdoorTemperature != other.outdoorTemperature
             && maxRoomTemperatureErr != other.maxRoomTemperatureErr
-            && maxRoomSetPoint != other.maxRoomSetPoint;
+            && maxRoomSetPoint != other.maxRoomSetPoint
+            && I != other.I;
     }
 
     bool operator!=(BoilerState& other)
