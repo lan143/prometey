@@ -11,15 +11,16 @@
 class RoomHandler
 {
 public:
-    RoomHandler(EDConfig::ConfigMgr<Config>* configMgr) : _configMgr(configMgr) {}
+    RoomHandler(EDConfig::ConfigMgr<Config>* configMgr, std::list<Room*>* rooms) : _configMgr(configMgr), _rooms(rooms) {}
 
     void registerHandlers(AsyncWebServer* server)
     {
         server->on("/api/settings/rooms", HTTP_GET, [this](AsyncWebServerRequest *request) {
             AsyncResponseStream *response = request->beginResponseStream("application/json");
             auto& config = _configMgr->getConfig()->rooms;
+            auto& rooms = _rooms;
 
-            std::string payload = EDUtils::buildJson([config](JsonObject entity) {
+            std::string payload = EDUtils::buildJson([config, rooms](JsonObject entity) {
                 for (int i = 0; i < ROOMS_COUNT; i++) {
                     entity["rooms"][i]["id"] = config[i].id;
                     entity["rooms"][i]["enabled"] = config[i].enabled;
@@ -32,6 +33,16 @@ public:
                     entity["rooms"][i]["kP"] = config[i].kP;
                     entity["rooms"][i]["kI"] = config[i].kI;
                     entity["rooms"][i]["kD"] = config[i].kD;
+
+                    for (auto room : *rooms) {
+                        if (room->getID() == config[i].id) {
+                            entity["rooms"][i]["I"] = room->getState().I;
+                            entity["rooms"][i]["prevError"] = room->getState().prevErr;
+                            entity["rooms"][i]["prevTime"] = room->getState().prevTime;
+                            entity["rooms"][i]["valveOpeningPercent"] = room->getValveOpeningPercent();
+                            break;
+                        }
+                    }
                 }
             });
 
@@ -71,4 +82,5 @@ public:
 
 private:
     EDConfig::ConfigMgr<Config>* _configMgr = nullptr;
+    std::list<Room*>* _rooms;
 };

@@ -52,17 +52,17 @@ OutdoorTemperatureConsumer outdoorTemperatureConsumer(&boiler);
 
 CommandConsumer commandConsumer(&boiler);
 
+std::list<Room*> rooms;
+std::list<EDUtils::StateMgr<RoomMQTTState>*> roomStateMgrs;
+std::list<Valve*> valves;
+
 BoilerHandler boilerHandler(&configMgr);
-RoomHandler roomHandler(&configMgr);
+RoomHandler roomHandler(&configMgr, &rooms);
 ValveHandler valveHandler(&configMgr);
 Handler handler(&configMgr, &networkMgr, &healthCheck, &boilerHandler, &roomHandler, &valveHandler);
 
 PCF8574 mos1(0x24);
 PCF8574 mos2(0x25);
-
-std::list<Room*> rooms;
-std::list<EDUtils::StateMgr<RoomMQTTState>*> roomStateMgrs;
-std::list<Valve*> valves;
 
 void initRooms()
 {

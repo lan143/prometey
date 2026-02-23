@@ -39,6 +39,8 @@ public:
     }
 
     uint8_t getID() { return _config.id; }
+    uint8_t getValveOpeningPercent() { return _valveOpeningPercent; }
+    const RoomState& getState() const { return _state; }
 
     void update();
 
@@ -51,6 +53,7 @@ private:
     RoomState _state;
     uint64_t _lastUpdateTime = 0;
     uint64_t _lastSaveStateTime = 0;
+    uint8_t _valveOpeningPercent = 0;
 
     std::list<Valve*> _valves;
     Boiler* _boiler = nullptr;

@@ -8,7 +8,8 @@ bool RoomMQTTState::operator==(RoomMQTTState& other)
 {
     return (*this)._mode == other._mode
         && (*this)._setPoint == other._setPoint
-        && (*this)._currentTemperature == other._currentTemperature;
+        && (*this)._currentTemperature == other._currentTemperature
+        && (*this)._valveOpening == other._valveOpening;
 }
 
 std::string RoomMQTTState::marshalJSON()

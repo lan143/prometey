@@ -255,7 +255,7 @@ void Boiler::updateAutoMode()
         return;
     }
 
-    if (_lastAutoUpdateTime == 0 || (_lastAutoUpdateTime + 1200000) < millis()) {
+    if (_lastAutoUpdateTime == 0 || ((_lastAutoUpdateTime + 300000) < millis())) { // every 5 min
         auto dt = ((float_t)millis() - (float_t)_lastAutoUpdateTime) / 1000.0f;
         auto err = maxTemperatureErr();
         auto maxSP = maxSetPoint();
@@ -265,7 +265,7 @@ void Boiler::updateAutoMode()
 
         auto setPoint = _config.K * (maxSP - _state.outdoorTemperature) + _config.B;
         setPoint += _config.P * err;
-        _I = _I+err*dt*_config.I;
+        _I = constrain(_I+err*dt*_config.I, -70, 70);
         setPoint = constrain(setPoint + _I, 30, 70);
 
         if (setPoint > 30) {

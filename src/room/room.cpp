@@ -6,6 +6,7 @@ void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConf
 {
     _config = config;
     _state = _configMgr->getConfig()->roomStates[config.id];
+    _state.prevTime = 0; // for correct pid algo work after restart
 
     const char* chipID = EDUtils::getChipID();
 
@@ -64,7 +65,7 @@ void Room::calculateValvePosition()
         return;
     }
 
-    if (_lastUpdateTime == 0 || (_lastUpdateTime + 600000) < millis()) { // loop every 10 minutes
+    if (_lastUpdateTime == 0 || ((_lastUpdateTime + 300000) < millis())) { // loop every 5 minutes
         auto now = (float_t)millis() / 1000.0f;
         auto dt = now - _state.prevTime;
         _state.prevTime = now;
@@ -75,13 +76,18 @@ void Room::calculateValvePosition()
         auto D = ((err - _state.prevErr) / dt) * _config.kD;
         _state.prevErr = err;
 
-        auto valvePercent = constrain(int(P+_state.I+D), 0, 100);
+        _valveOpeningPercent = constrain(int(P+_state.I+D), 0, 100);
         for (auto valve : _valves) {
-            valve->setOpening(valvePercent);
+            valve->setOpening(_valveOpeningPercent);
         }
 
-        _stateMgr->getState().setValveOpening(valvePercent);
-        _boiler->updateRoomTemperatureError(_config.id, err);
+        _stateMgr->getState().setValveOpening(_valveOpeningPercent);
+
+        if (_valveOpeningPercent == 100 || _valveOpeningPercent == 0) {
+            _boiler->updateRoomTemperatureError(_config.id, err);
+        } else {
+            _boiler->updateRoomTemperatureError(_config.id, 0);
+        }
 
         _lastUpdateTime = millis();
     }
