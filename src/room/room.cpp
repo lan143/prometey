@@ -40,7 +40,7 @@ void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConf
     discoveryMgr->addSensor(
         device,
         EDUtils::formatString("%s valve opening", config.name),
-        EDUtils::formatString("%svalveOpening", config.name),
+        EDUtils::formatString("%dvalveOpening", config.id),
         EDUtils::formatString("%d_room_valve_opening_%s_prometey", config.id, chipID)
     )
         ->setStateTopic(config.mqttStateTopic)
@@ -62,6 +62,15 @@ void Room::update()
 void Room::calculateValvePosition()
 {
     if (!_state.active || _state.currentTemperature == 0.0f) {
+        if (_valveOpeningPercent != 100.0f) {
+            _valveOpeningPercent = 100.0f;
+            for (auto valve : _valves) {
+                valve->setOpening(_valveOpeningPercent);
+            }
+
+            _stateMgr->getState().setValveOpening(_valveOpeningPercent);
+        }
+
         return;
     }
 
@@ -106,4 +115,14 @@ void Room::saveState()
 
         _lastSaveStateTime = millis();
     }
+}
+
+void Room::changeActive(bool active)
+{
+    if (active && !_state.active) {
+        _state.prevTime = millis();
+    }
+
+    _state.active = active;
+    _stateMgr->getState().setMode(active ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
 }

@@ -32,12 +32,7 @@ public:
         _stateMgr->getState().changeSetPoint(setPoint);
     }
 
-    void changeActive(bool active)
-    {
-        _state.active = active;
-        _stateMgr->getState().setMode(active ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
-    }
-
+    void changeActive(bool active);
     uint8_t getID() { return _config.id; }
     uint8_t getValveOpeningPercent() { return _valveOpeningPercent; }
     const RoomState& getState() const { return _state; }

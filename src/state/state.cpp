@@ -52,7 +52,7 @@ std::string State::marshalJSON()
         }
 
         if (_hotWaterSetPoint.Valid()) {
-            entity[F("hotWaterSetPoint")] = _hotWaterSetPoint.Valid();
+            entity[F("hotWaterSetPoint")] = _hotWaterSetPoint.Value();
         }
 
         if (_hotWaterCurrentTemperature.Valid()) {

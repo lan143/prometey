@@ -139,6 +139,8 @@ void Boiler::setCentralHeatingMode(CentralHeatingMode mode)
             break;
         case CENTRAL_HEATING_MODE_AUTO:
             _stateMgr->getState().setCentralHeatingMode(EDHA::MODE_AUTO);
+            _lastAutoUpdateTime = 0;
+            _prevTime = millis();
             break;
     }
 }
@@ -210,6 +212,10 @@ void Boiler::update()
         auto errorCode = _driver.getErrorCode();
         if (errorCode.Valid()) {
             _stateMgr->getState().changeFault(errorCode.Value() != 0);
+
+            if (errorCode.Value() != 0) {
+                setCentralHeatingMode(CentralHeatingMode::CENTRAL_HEATING_MODE_OFF);
+            }
         }
 
         auto currentModulation = _driver.getCurrentModulation();
@@ -256,13 +262,14 @@ void Boiler::updateAutoMode()
     }
 
     if (_lastAutoUpdateTime == 0 || ((_lastAutoUpdateTime + 300000) < millis())) { // every 5 min
-        auto dt = ((float_t)millis() - (float_t)_lastAutoUpdateTime) / 1000.0f;
+        auto dt = ((float_t)millis() - (float_t)_prevTime) / 1000.0f;
         auto err = maxTemperatureErr();
         auto maxSP = maxSetPoint();
         if (maxSP == 0.0f) {
             maxSP = 25;
         }
 
+        _prevTime = millis();
         auto setPoint = _config.K * (maxSP - _state.outdoorTemperature) + _config.B;
         setPoint += _config.P * err;
         _state.I = constrain(_state.I+err*dt*_config.I, -70, 70);
