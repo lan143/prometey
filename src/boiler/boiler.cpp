@@ -140,7 +140,7 @@ void Boiler::setCentralHeatingMode(CentralHeatingMode mode)
         case CENTRAL_HEATING_MODE_AUTO:
             _stateMgr->getState().setCentralHeatingMode(EDHA::MODE_AUTO);
             _lastAutoUpdateTime = 0;
-            _prevTime = millis();
+            _prevTime = esp_timer_get_time();
             break;
     }
 }
@@ -170,10 +170,10 @@ void Boiler::setHotWaterSetPoint(float_t setPoint)
 
 void Boiler::update()
 {
-    if ((_lastUpdateTime + 1000) < millis()) {
+    if ((_lastUpdateTime + 1000000) < esp_timer_get_time()) {
         if (!_driver.isBoilerOnline()) {
             ESP_LOGE("boiler", "boiler isnt online");
-            _lastUpdateTime = millis();
+            _lastUpdateTime = esp_timer_get_time();
             _onlineFaultCount++;
             return;
         }
@@ -233,7 +233,7 @@ void Boiler::update()
             _stateMgr->getState().setHotWaterSetPoint(hotWaterSetPoint.Value());
         }
 
-        _lastUpdateTime = millis();
+        _lastUpdateTime = esp_timer_get_time();
     }
 
     updateAutoMode();
@@ -261,15 +261,15 @@ void Boiler::updateAutoMode()
         return;
     }
 
-    if (_lastAutoUpdateTime == 0 || ((_lastAutoUpdateTime + 300000) < millis())) { // every 5 min
-        auto dt = ((float_t)millis() - (float_t)_prevTime) / 1000.0f;
+    if (_lastAutoUpdateTime == 0 || ((_lastAutoUpdateTime + 300000000) < esp_timer_get_time())) { // every 5 min
+        auto dt = (float_t)(esp_timer_get_time() - _prevTime) / 1000000.0f;
         auto err = maxTemperatureErr();
         auto maxSP = maxSetPoint();
         if (maxSP == 0.0f) {
             maxSP = 25;
         }
 
-        _prevTime = millis();
+        _prevTime = esp_timer_get_time();
         auto setPoint = _config.K * (maxSP - _state.outdoorTemperature) + _config.B;
         setPoint += _config.P * err;
         _state.I = constrain(_state.I+err*dt*_config.I, -70, 70);
@@ -278,36 +278,36 @@ void Boiler::updateAutoMode()
         if (setPoint > 30) {
             if (!_driver.setCentralHeatingSetPoint(setPoint)) {
                 ESP_LOGE("boiler", "failed to update central heating setpoint");
-                _lastAutoUpdateTime += 5000;
+                _lastAutoUpdateTime += 5000000;
                 return;
             }
 
             if (!_driver.changeCentralHeatingState(true)) {
                 ESP_LOGE("boiler", "failed to enable central heating");
-                _lastAutoUpdateTime += 5000;
+                _lastAutoUpdateTime += 5000000;
                 return;
             }
         } else {
             if (!_driver.setCentralHeatingSetPoint(30)) {
                 ESP_LOGE("boiler", "failed to update central heating setpoint");
-                _lastAutoUpdateTime += 5000;
+                _lastAutoUpdateTime += 5000000;
                 return;
             }
 
             if (!_driver.changeCentralHeatingState(false)) {
                 ESP_LOGE("boiler", "failed to disable central heating");
-                _lastAutoUpdateTime += 5000;
+                _lastAutoUpdateTime += 5000000;
                 return;
             }
         }
 
-        _lastAutoUpdateTime = millis();
+        _lastAutoUpdateTime = esp_timer_get_time();
     }
 }
 
 void Boiler::saveState()
 {
-    if ((_lastSaveStateTime + 60000) < millis()) {
+    if ((_lastSaveStateTime + 60000000) < esp_timer_get_time()) {
         if (_configMgr->getConfig()->boilerState != _state) {
             _configMgr->getConfig()->boilerState = _state;
             if (!_configMgr->store()) {
@@ -315,6 +315,6 @@ void Boiler::saveState()
             }
         }
 
-        _lastSaveStateTime = millis();
+        _lastSaveStateTime = esp_timer_get_time();
     }
 }

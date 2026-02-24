@@ -180,7 +180,7 @@ void Handler::init()
             }
 
             entity[F("freeHeap")] = ESP.getFreeHeap();
-            entity[F("uptime")] = millis() / 1000;
+            entity[F("uptime")] = esp_timer_get_time() / 1000000;
 
             esp_reset_reason_t reason = esp_reset_reason();
 
@@ -222,8 +222,6 @@ void Handler::init()
         });
         response->print(data.c_str());
         request->send(response);
-
-        millis();
     });
 
     _server->on("/api/reboot", HTTP_POST, [this](AsyncWebServerRequest *request) {

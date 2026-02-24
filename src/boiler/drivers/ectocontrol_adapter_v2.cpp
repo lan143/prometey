@@ -170,24 +170,24 @@ bool EctoControlAdapterV2::changeHotWaterState(bool enabled)
 
 void EctoControlAdapterV2::update()
 {
-    if ((_lastUpdateTime + 500) < millis()) {
+    if ((_lastUpdateTime + 500000) < esp_timer_get_time()) {
         auto val = _client.holdingRegisterRead(_address, 0x0010);
         if (val == -1) {
             _isBoilerOnline = false;
-            _lastUpdateTime = millis();
+            _lastUpdateTime = esp_timer_get_time();
             return;
         }
 
         _isBoilerOnline = val & 0x800;
         if (!_isBoilerOnline) {
-            _lastUpdateTime = millis();
+            _lastUpdateTime = esp_timer_get_time();
             return;
         }
         
         val = _client.holdingRegisterRead(_address, 0x001D);
         if (val == -1) {
             _isBoilerOnline = false;
-            _lastUpdateTime = millis();
+            _lastUpdateTime = esp_timer_get_time();
             return;
         }
 
@@ -198,7 +198,7 @@ void EctoControlAdapterV2::update()
         val = _client.holdingRegisterRead(_address, 0x0039);
         if (val == -1) {
             _isBoilerOnline = false;
-            _lastUpdateTime = millis();
+            _lastUpdateTime = esp_timer_get_time();
             return;
         }
 
@@ -206,7 +206,7 @@ void EctoControlAdapterV2::update()
         _isHotWaterEnabled.setValidValue(val & 0x2);
 
         _isBoilerOnline = true;
-        _lastUpdateTime = millis();
+        _lastUpdateTime = esp_timer_get_time();
     }
 }
 

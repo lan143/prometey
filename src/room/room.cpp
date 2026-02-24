@@ -74,8 +74,8 @@ void Room::calculateValvePosition()
         return;
     }
 
-    if (_lastUpdateTime == 0 || ((_lastUpdateTime + 300000) < millis())) { // loop every 5 minutes
-        auto now = (float_t)millis() / 1000.0f;
+    if (_lastUpdateTime == 0 || ((_lastUpdateTime + 300000000) < esp_timer_get_time())) { // loop every 5 minutes
+        auto now = (float_t)esp_timer_get_time() / 1000000.0f;
         auto dt = now - _state.prevTime;
         _state.prevTime = now;
 
@@ -98,13 +98,13 @@ void Room::calculateValvePosition()
             _boiler->updateRoomTemperatureError(_config.id, 0);
         }
 
-        _lastUpdateTime = millis();
+        _lastUpdateTime = esp_timer_get_time();
     }
 }
 
 void Room::saveState()
 {
-    if ((_lastSaveStateTime + 60000 + _config.id * 1000) < millis()) {
+    if ((_lastSaveStateTime + 60000000 + _config.id * 1000000) < esp_timer_get_time()) {
         if (_configMgr->getConfig()->roomStates[_config.id] != _state) {
             _configMgr->getConfig()->roomStates[_config.id] = _state;
 
@@ -113,14 +113,14 @@ void Room::saveState()
             }
         }
 
-        _lastSaveStateTime = millis();
+        _lastSaveStateTime = esp_timer_get_time();
     }
 }
 
 void Room::changeActive(bool active)
 {
     if (active && !_state.active) {
-        _state.prevTime = millis();
+        _state.prevTime = esp_timer_get_time();
     }
 
     _state.active = active;

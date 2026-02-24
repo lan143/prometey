@@ -43,7 +43,7 @@ void NetworkMgr::init(Config* config)
 
 void NetworkMgr::loop()
 {
-    if (_lastCheckConnectTime + 500 < millis()) {
+    if (_lastCheckConnectTime + 500000 < esp_timer_get_time()) {
         if (_prevIsConnected != isConnected()) {
             for (const auto& fn : _connectCallbacks) {
                 fn(isConnected());
@@ -74,7 +74,7 @@ void NetworkMgr::loop()
             _failedConnectCounts = 0;
         }
 
-        _lastCheckConnectTime = millis();
+        _lastCheckConnectTime = esp_timer_get_time();
     }
 }
 
