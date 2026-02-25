@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ETH.h>
+
 #define SERIAL_SPEED 115200
 
 #define ETH_ADDR        0

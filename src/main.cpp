@@ -10,6 +10,7 @@
 #include <state/state_mgr.h>
 #include <PCF8574.h>
 #include <Wire.h>
+#include <network/network.h>
 
 #include "defines.h"
 #include "config.h"
@@ -20,7 +21,6 @@
 #include "consumers/outdoor_temperature_consumer.h"
 #include "consumers/room_command_consumer.h"
 #include "consumers/room_temperature_consumer.h"
-#include "network/network.h"
 #include "room/api/room_handler.h"
 #include "room/room.h"
 #include "state/room_producer.h"
@@ -34,7 +34,7 @@
 #include "web/handler.h"
 
 EDConfig::ConfigMgr<Config> configMgr(EEPROM_SIZE);
-NetworkMgr networkMgr(true);
+EDNetwork::NetworkMgr networkMgr;
 EDMQTT::MQTT mqtt;
 
 ModbusClient modbus(Serial2);
@@ -165,7 +165,7 @@ void setup()
     mos2.begin();
 
     ESP_LOGI("setup", "init network");
-    networkMgr.init(configMgr.getConfig());
+    networkMgr.init(configMgr.getConfig()->asNetworkConfig(), true, ETH_ADDR, -1, ETH_MDC_PIN, ETH_MDIO_PIN, ETH_TYPE, ETH_CLK_MODE);
 
     ESP_LOGI("setup", "init OTA");
     ArduinoOTA.setPassword("somestrongpassword");

@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <mqtt_config.h>
+#include <network/network_config.h>
 
 #include "defines.h"
 #include "boiler/boiler_config.h"
@@ -49,4 +50,16 @@ struct Config
     RoomConfig rooms[ROOMS_COUNT] = {};
     RoomState roomStates[ROOMS_COUNT] = {};
     ValveConfig valves[VALVES_COUNT] = {};
+
+    EDNetwork::Config asNetworkConfig() // tmp
+    {
+        EDNetwork::Config cfg;
+        cfg.isAPMode = isAPMode;
+        strcpy(cfg.wifiAPSSID, wifiAPSSID);
+        cfg.wifiAPHasPassword = wifiAPHasPassword;
+        strcpy(cfg.wifiSSID, wifiSSID);
+        strcpy(cfg.wifiPassword, wifiPassword);
+
+        return cfg;
+    }
 };
