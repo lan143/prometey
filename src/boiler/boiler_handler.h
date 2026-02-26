@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ConfigMgr.h>
+#include <data_mgr.h>
 #include <ESPAsyncWebServer.h>
 #include <Json.h>
 #include <Utils.h>
@@ -10,7 +10,7 @@
 class BoilerHandler
 {
 public:
-    BoilerHandler(EDConfig::ConfigMgr<Config>* configMgr) : _configMgr(configMgr) {}
+    BoilerHandler(EDConfig::DataMgr<Config>* configMgr) : _configMgr(configMgr) {}
 
     void registerHandlers(AsyncWebServer* server)
     {
@@ -83,7 +83,7 @@ public:
                     return;
             }
 
-            BoilerConfig& config = _configMgr->getConfig()->boiler;
+            BoilerConfig& config = _configMgr->getData()->boiler;
             config.driver = driver;
 
             if (driver == BOILER_DRIVER_ECTOCONTROLV2) {
@@ -159,7 +159,7 @@ public:
 
         server->on("/api/settings/boiler", HTTP_GET, [this](AsyncWebServerRequest *request) {
             AsyncResponseStream *response = request->beginResponseStream("application/json");
-            auto& config = _configMgr->getConfig()->boiler;
+            auto& config = _configMgr->getData()->boiler;
 
             std::string payload = EDUtils::buildJson([config](JsonObject entity) {
                 entity["driver"] = config.driver;
@@ -180,5 +180,5 @@ public:
     }
 
 private:
-    EDConfig::ConfigMgr<Config>* _configMgr = nullptr;
+    EDConfig::DataMgr<Config>* _configMgr = nullptr;
 };

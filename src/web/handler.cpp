@@ -1,19 +1,19 @@
 #include <ArduinoJSON.h>
 #include <FS.h>
-#include <SPIFFS.h>
 #include <esp_system.h>
 #include <ExtStrings.h>
 #include <Json.h>
 #include <cstring>
 #include <string.h>
 #include "defines.h"
-#include "Handler.h"
+#include "handler.h"
 
 void Handler::init()
 {
-    _server->serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
-    _server->serveStatic("/jquery-3.6.0.min.js", SPIFFS, "/jquery-3.6.0.min.js");
-    _server->serveStatic("/bootstrap.min.js", SPIFFS, "/bootstrap.min.js");
+    _server->serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
+    _server->serveStatic("/jquery-3.6.0.min.js", LittleFS, "/jquery-3.6.0.min.js");
+    _server->serveStatic("/bootstrap.min.js", LittleFS, "/bootstrap.min.js");
+    _server->serveStatic("/config.bin", LittleFS, "/config.bin");
 
     _boilerHandler->registerHandlers(_server);
     _roomHandler->registerHandlers(_server);
@@ -40,10 +40,10 @@ void Handler::init()
         AsyncResponseStream *response = request->beginResponseStream("application/json");
 
         std::string payload = EDUtils::buildJson([this](JsonObject entity) {
-            Config* config = _configMgr->getConfig();
+            Config* config = _configMgr->getData();
 
-            entity["wifiSSID"] = config->wifiSSID;
-            entity["wifiPassword"] = config->wifiPassword;
+            entity["wifiSSID"] = config->network.wifiSSID;
+            entity["wifiPassword"] = config->network.wifiPassword;
             entity["mqttHost"] = config->mqtt.host;
             entity["mqttPort"] = config->mqtt.port;
             entity["mqttLogin"] = config->mqtt.login;
@@ -77,10 +77,10 @@ void Handler::init()
             return;
         }
 
-        Config* config = _configMgr->getConfig();
-        std::strcpy(config->wifiSSID, wifiSSID->value().c_str());
-        std::strcpy(config->wifiPassword, wifiPassword->value().c_str());
-        config->isAPMode = false;
+        Config* config = _configMgr->getData();
+        std::strcpy(config->network.wifiSSID, wifiSSID->value().c_str());
+        std::strcpy(config->network.wifiPassword, wifiPassword->value().c_str());
+        config->network.isAPMode = false;
 
         _configMgr->store();
 
@@ -99,7 +99,7 @@ void Handler::init()
             return;
         }
 
-        Config* config = _configMgr->getConfig();
+        Config* config = _configMgr->getData();
         const AsyncWebParameter* host = request->getParam("host", true);
         const AsyncWebParameter* port = request->getParam("port", true);
         const AsyncWebParameter* login = request->getParam("login", true);
@@ -164,7 +164,10 @@ void Handler::init()
             config->mqttIsHADiscovery = false;
         }
 
-        _configMgr->store();
+        if (!_configMgr->store()) {
+            request->send(500, "application/json", "{\"message\": \"failed to save config\"}");
+            return;
+        }
 
         request->send(200, "application/json", "{}");
     });

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ConfigMgr.h>
+#include <data_mgr.h>
 #include <ESPAsyncWebServer.h>
 #include <discovery.h>
 #include <ready.h>
@@ -20,9 +20,9 @@ class Boiler : public EDHealthCheck::Ready
 public:
     Boiler(
         Driver& driver,
-        EDConfig::ConfigMgr<Config>* configMgr,
-        EDUtils::StateMgr<State>* stateMgr
-    ) : _driver(driver), _configMgr(configMgr), _stateMgr(stateMgr) {
+        EDConfig::DataMgr<BoilerState>* localStateMgr,
+        EDUtils::StateMgr<State>* mqttStateMgr
+    ) : _driver(driver), _localStateMgr(localStateMgr), _mqttStateMgr(mqttStateMgr) {
         for (int i = 0; i < ROOMS_COUNT; i++) {
             _roomTemperatureErr[i] = EDUtils::Nullable<float_t>(false, 0.0f);
             _roomSetPoints[i] = EDUtils::Nullable<float_t>(false, 0.0f);
@@ -118,6 +118,6 @@ private:
 
 private:
     Driver& _driver;
-    EDConfig::ConfigMgr<Config>* _configMgr = nullptr;
-    EDUtils::StateMgr<State>* _stateMgr = nullptr;
+    EDConfig::DataMgr<BoilerState>* _localStateMgr = nullptr;
+    EDUtils::StateMgr<State>* _mqttStateMgr = nullptr;
 };

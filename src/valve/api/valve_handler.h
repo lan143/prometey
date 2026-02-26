@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ConfigMgr.h>
+#include <data_mgr.h>
 #include <ESPAsyncWebServer.h>
 #include <Json.h>
 #include <Utils.h>
@@ -11,13 +11,13 @@
 class ValveHandler
 {
 public:
-    ValveHandler(EDConfig::ConfigMgr<Config>* configMgr) : _configMgr(configMgr) {}
+    ValveHandler(EDConfig::DataMgr<Config>* configMgr) : _configMgr(configMgr) {}
 
     void registerHandlers(AsyncWebServer* server)
     {
         server->on("/api/settings/valves", HTTP_GET, [this](AsyncWebServerRequest *request) {
             AsyncResponseStream *response = request->beginResponseStream("application/json");
-            auto& config = _configMgr->getConfig()->valves;
+            auto& config = _configMgr->getData()->valves;
 
             std::string payload = EDUtils::buildJson([config](JsonObject entity) {
                 for (int i = 0; i < VALVES_COUNT; i++) {
@@ -55,7 +55,7 @@ public:
                 return;
             }
 
-            _configMgr->getConfig()->valves[req.getID()] = req.asConfig();
+            _configMgr->getData()->valves[req.getID()] = req.asConfig();
             if (_configMgr->store()) {
                 request->send(200, "application/json", "{}");
             } else {
@@ -65,5 +65,5 @@ public:
     }
 
 private:
-    EDConfig::ConfigMgr<Config>* _configMgr = nullptr;
+    EDConfig::DataMgr<Config>* _configMgr = nullptr;
 };

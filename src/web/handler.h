@@ -6,8 +6,9 @@
     #include <ESPAsyncTCP.h>
 #endif
 
+#include <LittleFS.h>
 #include <ESPAsyncWebServer.h>
-#include <ConfigMgr.h>
+#include <data_mgr.h>
 #include <healthcheck.h>
 #include <network/network.h>
 
@@ -19,7 +20,7 @@
 class Handler {
 public:
     Handler(
-        EDConfig::ConfigMgr<Config>* configMgr,
+        EDConfig::DataMgr<Config>* configMgr,
         EDNetwork::NetworkMgr* networkMgr,
         EDHealthCheck::HealthCheck* healthCheck,
         BoilerHandler* boilerHandler,
@@ -36,7 +37,7 @@ public:
 private:
     AsyncWebServer* _server = nullptr;
     BoilerHandler* _boilerHandler = nullptr;
-    EDConfig::ConfigMgr<Config>* _configMgr = nullptr;
+    EDConfig::DataMgr<Config>* _configMgr = nullptr;
     EDNetwork::NetworkMgr* _networkMgr = nullptr;
     EDHealthCheck::HealthCheck* _healthCheck = nullptr;
     RoomHandler* _roomHandler = nullptr;

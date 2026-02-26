@@ -12,7 +12,7 @@ void Boiler::init(
     BoilerConfig config
 ) {
     _config = config;
-    _state = _configMgr->getConfig()->boilerState;
+    _state = *_localStateMgr->getData();
 
     const char* chipID = EDUtils::getChipID();
 
@@ -71,6 +71,8 @@ void Boiler::init(
         ->setMaxTemp(maxHotWaterTemperature.Valid() ? maxHotWaterTemperature.Value() : 60)
         ->setTemperatureCommandTemplate("{\"hotWaterSetPoint\": {{ value }} }")
         ->setTemperatureCommandTopic(commandTopic)
+        ->setTemperatureStateTemplate("{{ value_json.hotWaterSetPoint }}")
+        ->setTemperatureStateTopic(stateTopic)
         ->setModes(hotWaterModes)
         ->setInitial(_state.hotWaterSetPoint)
         ->setPrecision(1.0f);
@@ -132,13 +134,13 @@ void Boiler::setCentralHeatingMode(CentralHeatingMode mode)
 
     switch (mode) {
         case CENTRAL_HEATING_MODE_OFF:
-            _stateMgr->getState().setCentralHeatingMode(EDHA::MODE_OFF);
+            _mqttStateMgr->getState().setCentralHeatingMode(EDHA::MODE_OFF);
             break;
         case CENTRAL_HEATING_MODE_HEAT:
-            _stateMgr->getState().setCentralHeatingMode(EDHA::MODE_HEAT);
+            _mqttStateMgr->getState().setCentralHeatingMode(EDHA::MODE_HEAT);
             break;
         case CENTRAL_HEATING_MODE_AUTO:
-            _stateMgr->getState().setCentralHeatingMode(EDHA::MODE_AUTO);
+            _mqttStateMgr->getState().setCentralHeatingMode(EDHA::MODE_AUTO);
             _lastAutoUpdateTime = 0;
             _prevTime = esp_timer_get_time();
             break;
@@ -186,32 +188,32 @@ void Boiler::update()
 
         auto currentCentralHeatingTemperature = _driver.getCurrentCentralHeatingTemperature();
         if (currentCentralHeatingTemperature.Valid()) {
-            _stateMgr->getState().setCentralHeatingCurrentTemperature(currentCentralHeatingTemperature.Value());
+            _mqttStateMgr->getState().setCentralHeatingCurrentTemperature(currentCentralHeatingTemperature.Value());
         }
 
         auto isHotWaterEnabled = _driver.isHotWaterEnabled();
         if (isHotWaterEnabled.Valid()) {
-            _stateMgr->getState().setHotWaterMode(isHotWaterEnabled.Value() ? EDHA::MODE_GAS : EDHA::MODE_OFF);
+            _mqttStateMgr->getState().setHotWaterMode(isHotWaterEnabled.Value() ? EDHA::MODE_GAS : EDHA::MODE_OFF);
         }
 
         auto currentHotWaterTemperature = _driver.getCurrentHotWaterTemperature();
         if (currentHotWaterTemperature.Valid()) {
-            _stateMgr->getState().setHotWaterCurrentTemperature(currentHotWaterTemperature.Value());
+            _mqttStateMgr->getState().setHotWaterCurrentTemperature(currentHotWaterTemperature.Value());
         }
 
         auto isHotWaterActive = _driver.isHotWaterActive();
         if (isHotWaterActive.Valid()) {
-            _stateMgr->getState().changeHotWaterActive(isHotWaterActive.Value());
+            _mqttStateMgr->getState().changeHotWaterActive(isHotWaterActive.Value());
         }
 
         auto isFlameActive = _driver.isFlameActive();
         if (isFlameActive.Valid()) {
-            _stateMgr->getState().changeFlameActive(isFlameActive.Value());
+            _mqttStateMgr->getState().changeFlameActive(isFlameActive.Value());
         }
 
         auto errorCode = _driver.getErrorCode();
         if (errorCode.Valid()) {
-            _stateMgr->getState().changeFault(errorCode.Value() != 0);
+            _mqttStateMgr->getState().changeFault(errorCode.Value() != 0);
 
             if (errorCode.Value() != 0) {
                 setCentralHeatingMode(CentralHeatingMode::CENTRAL_HEATING_MODE_OFF);
@@ -220,17 +222,17 @@ void Boiler::update()
 
         auto currentModulation = _driver.getCurrentModulation();
         if (currentModulation.Valid()) {
-            _stateMgr->getState().setModulation(currentModulation.Value());
+            _mqttStateMgr->getState().setModulation(currentModulation.Value());
         }
 
         auto centralHeatingSetPoint = _driver.getCentralHeatingSetPoint();
         if (centralHeatingSetPoint.Valid()) {
-            _stateMgr->getState().setCentralHeatingSetPoint(centralHeatingSetPoint.Value());
+            _mqttStateMgr->getState().setCentralHeatingSetPoint(centralHeatingSetPoint.Value());
         }
 
         auto hotWaterSetPoint = _driver.getHotWaterSetPoint();
         if (hotWaterSetPoint.Valid()) {
-            _stateMgr->getState().setHotWaterSetPoint(hotWaterSetPoint.Value());
+            _mqttStateMgr->getState().setHotWaterSetPoint(hotWaterSetPoint.Value());
         }
 
         _lastUpdateTime = esp_timer_get_time();
@@ -244,7 +246,7 @@ EDHealthCheck::ReadyResult Boiler::ready()
 {
     bool ready = true;
     std::string message = "";
-    if (_stateMgr->getState().isFault()) {
+    if (_mqttStateMgr->getState().isFault()) {
         ready = false;
         message = "boiler is in fault state";
     } else if (_onlineFaultCount >= 20) {
@@ -308,9 +310,9 @@ void Boiler::updateAutoMode()
 void Boiler::saveState()
 {
     if ((_lastSaveStateTime + 60000000) < esp_timer_get_time()) {
-        if (_configMgr->getConfig()->boilerState != _state) {
-            _configMgr->getConfig()->boilerState = _state;
-            if (!_configMgr->store()) {
+        if (*_localStateMgr->getData() != _state) {
+            _localStateMgr->setData(&_state);
+            if (!_localStateMgr->store()) {
                 ESP_LOGE("boiler", "failed to save boiler state");
             }
         }

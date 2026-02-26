@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 #include <list>
-#include <ConfigMgr.h>
+#include <data_mgr.h>
 #include <state/state_mgr.h>
 
 #include "boiler/boiler.h"
@@ -14,7 +14,11 @@
 class Room
 {
 public:
-    Room(Boiler* boiler, EDConfig::ConfigMgr<Config>* configMgr, EDUtils::StateMgr<RoomMQTTState>* stateMgr) : _boiler(boiler), _configMgr(configMgr), _stateMgr(stateMgr) {}
+    Room(
+        Boiler* boiler,
+        EDConfig::DataMgr<RoomState>* localStateMgr,
+        EDUtils::StateMgr<RoomMQTTState>* mqttStateMgr
+    ) : _boiler(boiler), _localStateMgr(localStateMgr), _mqttStateMgr(mqttStateMgr) {}
 
     void init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConfig config);
     void addValve(Valve* valve) { _valves.push_back(valve); }
@@ -22,14 +26,14 @@ public:
     void setTemperature(float_t temperature)
     {
         _state.currentTemperature = temperature;
-        _stateMgr->getState().setCurrentTemperature(temperature);
+        _mqttStateMgr->getState().setCurrentTemperature(temperature);
     }
 
     void updateSetPoint(float_t setPoint)
     {
         _state.setPoint = setPoint;
         _boiler->updateRoomSetPoint(_config.id, setPoint);
-        _stateMgr->getState().changeSetPoint(setPoint);
+        _mqttStateMgr->getState().changeSetPoint(setPoint);
     }
 
     void changeActive(bool active);
@@ -52,6 +56,6 @@ private:
 
     std::list<Valve*> _valves;
     Boiler* _boiler = nullptr;
-    EDConfig::ConfigMgr<Config>* _configMgr = nullptr;
-    EDUtils::StateMgr<RoomMQTTState>* _stateMgr = nullptr;
+    EDConfig::DataMgr<RoomState>* _localStateMgr = nullptr;
+    EDUtils::StateMgr<RoomMQTTState>* _mqttStateMgr = nullptr;
 };

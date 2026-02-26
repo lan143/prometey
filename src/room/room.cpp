@@ -5,7 +5,7 @@
 void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConfig config)
 {
     _config = config;
-    _state = _configMgr->getConfig()->roomStates[config.id];
+    _state = *_localStateMgr->getData();
     _state.prevTime = 0; // for correct pid algo work after restart
 
     const char* chipID = EDUtils::getChipID();
@@ -47,9 +47,9 @@ void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConf
         ->setValueTemplate("{{ value_json.valveOpening }}")
         ->setUnitOfMeasurement("%");
 
-    _stateMgr->getState().setMode(_state.active ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
-    _stateMgr->getState().setValveOpening(100.0f);
-    _stateMgr->getState().changeSetPoint(_state.setPoint);
+    _mqttStateMgr->getState().setMode(_state.active ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
+    _mqttStateMgr->getState().setValveOpening(100.0f);
+    _mqttStateMgr->getState().changeSetPoint(_state.setPoint);
     _boiler->updateRoomSetPoint(_config.id, _state.setPoint);
 }
 
@@ -68,7 +68,7 @@ void Room::calculateValvePosition()
                 valve->setOpening(_valveOpeningPercent);
             }
 
-            _stateMgr->getState().setValveOpening(_valveOpeningPercent);
+            _mqttStateMgr->getState().setValveOpening(_valveOpeningPercent);
         }
 
         return;
@@ -90,7 +90,7 @@ void Room::calculateValvePosition()
             valve->setOpening(_valveOpeningPercent);
         }
 
-        _stateMgr->getState().setValveOpening(_valveOpeningPercent);
+        _mqttStateMgr->getState().setValveOpening(_valveOpeningPercent);
 
         if (_valveOpeningPercent == 100 || _valveOpeningPercent == 0) {
             _boiler->updateRoomTemperatureError(_config.id, err);
@@ -105,10 +105,10 @@ void Room::calculateValvePosition()
 void Room::saveState()
 {
     if ((_lastSaveStateTime + 60000000 + _config.id * 1000000) < esp_timer_get_time()) {
-        if (_configMgr->getConfig()->roomStates[_config.id] != _state) {
-            _configMgr->getConfig()->roomStates[_config.id] = _state;
+        if (*_localStateMgr->getData() != _state) {
+            _localStateMgr->setData(&_state);
 
-            if (!_configMgr->store()) {
+            if (!_localStateMgr->store()) {
                 ESP_LOGE("room", "failed to save state");
             }
         }
@@ -124,5 +124,5 @@ void Room::changeActive(bool active)
     }
 
     _state.active = active;
-    _stateMgr->getState().setMode(active ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
+    _mqttStateMgr->getState().setMode(active ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
 }

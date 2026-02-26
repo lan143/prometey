@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ConfigMgr.h>
+#include <data_mgr.h>
 #include <ESPAsyncWebServer.h>
 #include <Json.h>
 #include <Utils.h>
@@ -12,13 +12,13 @@
 class RoomHandler
 {
 public:
-    RoomHandler(EDConfig::ConfigMgr<Config>* configMgr, std::list<Room*>* rooms) : _configMgr(configMgr), _rooms(rooms) {}
+    RoomHandler(EDConfig::DataMgr<Config>* configMgr, std::list<Room*>* rooms) : _configMgr(configMgr), _rooms(rooms) {}
 
     void registerHandlers(AsyncWebServer* server)
     {
         server->on("/api/settings/rooms", HTTP_GET, [this](AsyncWebServerRequest *request) {
             AsyncResponseStream *response = request->beginResponseStream("application/json");
-            auto& config = _configMgr->getConfig()->rooms;
+            auto& config = _configMgr->getData()->rooms;
             auto& rooms = _rooms;
 
             std::string payload = EDUtils::buildJson([config, rooms](JsonObject entity) {
@@ -72,7 +72,7 @@ public:
                 return;
             }
 
-            _configMgr->getConfig()->rooms[req.getRoomID()] = req.asConfig();
+            _configMgr->getData()->rooms[req.getRoomID()] = req.asConfig();
             if (_configMgr->store()) {
                 request->send(200, "application/json", "{}");
             } else {
@@ -82,6 +82,6 @@ public:
     }
 
 private:
-    EDConfig::ConfigMgr<Config>* _configMgr = nullptr;
+    EDConfig::DataMgr<Config>* _configMgr = nullptr;
     std::list<Room*>* _rooms;
 };
