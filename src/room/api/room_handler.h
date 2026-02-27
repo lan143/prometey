@@ -51,6 +51,16 @@ public:
             request->send(response);
         });
 
+        server->on("/api/rooms/state", HTTP_DELETE, [](AsyncWebServerRequest *request) {
+            for (int i = 0; i < ROOMS_COUNT; i++) {
+                LittleFS.remove(EDUtils::formatString("/room_%d.bin", i).c_str());
+            }
+
+            request->send(200, "application/json", "{}");
+            delay(1000);
+            ESP.restart();
+        });
+
         server->on("/api/settings/room", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [this](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
             AsyncResponseStream *response = request->beginResponseStream("application/json");
 

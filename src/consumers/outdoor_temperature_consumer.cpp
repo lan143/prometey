@@ -2,6 +2,7 @@
 #include <nullable.h>
 
 #include "outdoor_temperature_consumer.h"
+#include "log/log.h"
 
 void OutdoorTemperatureConsumer::consume(std::string payload)
 {
@@ -14,14 +15,14 @@ void OutdoorTemperatureConsumer::consume(std::string payload)
 
         return true;
     })) {
-        ESP_LOGE("OutdoorTemperatureConsumer", "failed to unmarshal message from topic");
+        LOGE("OutdoorTemperatureConsumer", "failed to unmarshal message from topic");
         return;
     }
 
     if (outdoorTemperature.Valid()) {
-        ESP_LOGD("OutdoorTemperatureConsumer", "got outdoor temperature: %f", outdoorTemperature.Value());
+        LOGD("OutdoorTemperatureConsumer", "got outdoor temperature: %f", outdoorTemperature.Value());
         _boiler->setOutdoorTemperature(outdoorTemperature.Value());
     } else {
-        ESP_LOGE("OutdoorTemperatureConsumer", "got invalid temperature value from topic");
+        LOGE("OutdoorTemperatureConsumer", "got invalid temperature value from topic");
     }
 }

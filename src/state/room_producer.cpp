@@ -1,13 +1,14 @@
 #include <esp_log.h>
 
 #include "room_producer.h"
+#include "log/log.h"
 
 bool RoomStateProducer::publish(RoomMQTTState* state)
 {
-    ESP_LOGD("RoomStateProducer", "try to produce state");
+    LOGD("RoomStateProducer", "try to produce state");
 
     if (!_mqtt->isConnected()) {
-        ESP_LOGE("RoomStateProducer", "failed to produce message - mqtt isnt connected");
+        LOGE("RoomStateProducer", "failed to produce message - mqtt isnt connected");
         return false;
     }
 

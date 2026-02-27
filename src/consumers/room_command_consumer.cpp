@@ -1,13 +1,14 @@
 #include "room_command_consumer.h"
 #include "command/room_command.h"
+#include "log/log.h"
 
 void RoomCommandConsumer::consume(std::string payload)
 {
-    ESP_LOGD("room_command_consumer", "handle");
+    LOGD("room_command_consumer", "handle");
 
     RoomCommand command;
     if (!command.unmarshalJSON(payload.c_str())) {
-        ESP_LOGE("room_command_consumer", "cant unmarshal command");
+        LOGE("room_command_consumer", "cant unmarshal command");
         return;
     }
 

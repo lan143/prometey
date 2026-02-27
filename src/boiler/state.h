@@ -4,7 +4,8 @@
 
 #include "enums.h"
 
-struct BoilerState {
+struct BoilerState
+{
     CentralHeatingMode mode = CENTRAL_HEATING_MODE_OFF;
     float_t centralHeatingSetPoint = 30;
     float_t hotWaterSetPoint = 30;
@@ -16,11 +17,11 @@ struct BoilerState {
     bool operator==(BoilerState& other)
     {
         return mode == other.mode
-            && centralHeatingSetPoint != other.centralHeatingSetPoint
-            && hotWaterSetPoint != other.hotWaterSetPoint
-            && outdoorTemperature != other.outdoorTemperature
-            && maxRoomTemperatureErr != other.maxRoomTemperatureErr
-            && maxRoomSetPoint != other.maxRoomSetPoint
+            && centralHeatingSetPoint == other.centralHeatingSetPoint
+            && hotWaterSetPoint == other.hotWaterSetPoint
+            && outdoorTemperature == other.outdoorTemperature
+            && maxRoomTemperatureErr == other.maxRoomTemperatureErr
+            && maxRoomSetPoint == other.maxRoomSetPoint
             && I != other.I;
     }
 

@@ -25,6 +25,7 @@ public:
 
     void setTemperature(float_t temperature)
     {
+        _state.currentTemperatureInit = true;
         _state.currentTemperature = temperature;
         _mqttStateMgr->getState().setCurrentTemperature(temperature);
     }

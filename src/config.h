@@ -14,9 +14,6 @@
 
 #define CURRENT_VERSION 2
 
-#define HOST_LEN 64
-#define MQTT_DEFAULT_PORT 1883
-
 #define MQTT_TOPIC_LEN 64
 
 struct Config

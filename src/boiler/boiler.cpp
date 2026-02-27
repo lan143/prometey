@@ -3,6 +3,7 @@
 #include <esp_log.h>
 
 #include "boiler.h"
+#include "log/log.h"
 
 void Boiler::init(
     EDHA::DiscoveryMgr* discoveryMgr,
@@ -159,14 +160,14 @@ void Boiler::setCentralHeatingSetPoint(float_t setPoint)
     }
 
     if (!_driver.setCentralHeatingSetPoint(setPoint)) {
-        ESP_LOGE("boiler", "failed to update central heating setpoint. value: %f", setPoint);
+        LOGE("boiler", "failed to update central heating setpoint. value: %f", setPoint);
     }
 }
 
 void Boiler::setHotWaterSetPoint(float_t setPoint)
 {
     if (!_driver.setHotWaterSetPoint(setPoint)) {
-        ESP_LOGE("boiler", "failed to update hot water setpoint. value: %f", setPoint);
+        LOGE("boiler", "failed to update hot water setpoint. value: %f", setPoint);
     }
 }
 
@@ -174,7 +175,7 @@ void Boiler::update()
 {
     if ((_lastUpdateTime + 1000000) < esp_timer_get_time()) {
         if (!_driver.isBoilerOnline()) {
-            ESP_LOGE("boiler", "boiler isnt online");
+            LOGE("boiler", "boiler isnt online");
             _lastUpdateTime = esp_timer_get_time();
             _onlineFaultCount++;
             return;
@@ -279,25 +280,25 @@ void Boiler::updateAutoMode()
 
         if (setPoint > 30) {
             if (!_driver.setCentralHeatingSetPoint(setPoint)) {
-                ESP_LOGE("boiler", "failed to update central heating setpoint");
+                LOGE("boiler", "failed to update central heating setpoint");
                 _lastAutoUpdateTime += 5000000;
                 return;
             }
 
             if (!_driver.changeCentralHeatingState(true)) {
-                ESP_LOGE("boiler", "failed to enable central heating");
+                LOGE("boiler", "failed to enable central heating");
                 _lastAutoUpdateTime += 5000000;
                 return;
             }
         } else {
             if (!_driver.setCentralHeatingSetPoint(30)) {
-                ESP_LOGE("boiler", "failed to update central heating setpoint");
+                LOGE("boiler", "failed to update central heating setpoint");
                 _lastAutoUpdateTime += 5000000;
                 return;
             }
 
             if (!_driver.changeCentralHeatingState(false)) {
-                ESP_LOGE("boiler", "failed to disable central heating");
+                LOGE("boiler", "failed to disable central heating");
                 _lastAutoUpdateTime += 5000000;
                 return;
             }
@@ -313,7 +314,7 @@ void Boiler::saveState()
         if (*_localStateMgr->getData() != _state) {
             _localStateMgr->setData(&_state);
             if (!_localStateMgr->store()) {
-                ESP_LOGE("boiler", "failed to save boiler state");
+                LOGE("boiler", "failed to save boiler state");
             }
         }
 

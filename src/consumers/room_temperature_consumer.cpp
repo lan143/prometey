@@ -2,6 +2,7 @@
 #include <nullable.h>
 
 #include "room_temperature_consumer.h"
+#include "log/log.h"
 
 void RoomTemperatureConsumer::consume(std::string payload)
 {
@@ -14,14 +15,14 @@ void RoomTemperatureConsumer::consume(std::string payload)
 
         return true;
     })) {
-        ESP_LOGE("RoomTemperatureConsumer", "failed to unmarshal message from topic");
+        LOGE("RoomTemperatureConsumer", "failed to unmarshal message from topic");
         return;
     }
 
     if (temperature.Valid()) {
-        ESP_LOGD("RoomTemperatureConsumer", "got room temperature: %f", temperature.Value());
+        LOGD("RoomTemperatureConsumer", "got room temperature: %f", temperature.Value());
         _room->setTemperature(temperature.Value());
     } else {
-        ESP_LOGE("RoomTemperatureConsumer", "got invalid temperature value from topic");
+        LOGE("RoomTemperatureConsumer", "got invalid temperature value from topic");
     }
 }

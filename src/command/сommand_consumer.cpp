@@ -3,14 +3,15 @@
 
 #include "command_consumer.h"
 #include "command.h"
+#include "log/log.h"
 
 void CommandConsumer::consume(std::string payload)
 {
-    ESP_LOGD("command_consumer", "handle");
+    LOGD("command_consumer", "handle");
 
     Command command;
     if (!command.unmarshalJSON(payload.c_str())) {
-        ESP_LOGE("command_consumer", "cant unmarshal command");
+        LOGE("command_consumer", "cant unmarshal command");
         return;
     }
 

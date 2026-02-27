@@ -6,6 +6,7 @@
 #include <Utils.h>
 
 #include "config.h"
+#include "log/log.h"
 
 class BoilerHandler
 {
@@ -147,7 +148,7 @@ public:
                 strcpy(config.outdoorSensorMqttTopic, outdoorSensorMqttTopicParam->value().c_str());
                 strcpy(config.outdoorSensorMqttField, outdoorSensorMqttFieldParam->value().c_str());
 
-                ESP_LOGD("handler", "outdoorSensorMqttTopic: %s, outdoorSensorMqttField: %s", config.outdoorSensorMqttTopic, config.outdoorSensorMqttField);
+                LOGD("handler", "outdoorSensorMqttTopic: %s, outdoorSensorMqttField: %s", config.outdoorSensorMqttTopic, config.outdoorSensorMqttField);
             }
 
             if (_configMgr->store()) {

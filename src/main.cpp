@@ -11,6 +11,7 @@
 #include <PCF8574.h>
 #include <Wire.h>
 #include <network/network.h>
+#include <log/log.h>
 
 #include "defines.h"
 #include "config.h"
@@ -76,7 +77,7 @@ void initRooms()
 {
     for (int i = 0; i < ROOMS_COUNT; i++) {
         auto roomConfig = configMgr.getData()->rooms[i];
-        ESP_LOGD("main", "room[%d] enabled=%d, mqttStateTopic='%s', mqttCommandTopic='%s'", i, roomConfig.enabled, roomConfig.mqttStateTopic, roomConfig.mqttCommandTopic);
+        LOGD("main", "room[%d] enabled=%d, mqttStateTopic='%s', mqttCommandTopic='%s'", i, roomConfig.enabled, roomConfig.mqttStateTopic, roomConfig.mqttCommandTopic);
 
         if (roomConfig.enabled) {
             auto roomStateProducer = new RoomStateProducer(&mqtt);
@@ -145,12 +146,13 @@ void setup()
     Serial.begin(SERIAL_SPEED);
 
     esp_log_level_set("*", ESP_LOG_VERBOSE);
-    ESP_LOGI("setup", "Prometey");
-    ESP_LOGI("setup", "start");
 
-    ESP_LOGI("setup", "littlefs begin");
+    LOGI("setup", "Prometey");
+    LOGI("setup", "start");
+
+    LOGI("setup", "littlefs begin");
     if (!LittleFS.begin(true)) {
-        ESP_LOGE("setup", "failed to init littlefs");
+        LOGE("setup", "failed to init littlefs");
         return;
     }
 
@@ -165,33 +167,43 @@ void setup()
         }
     });
 
-    ESP_LOGI("setup", "load config");
+    LOGI("setup", "load config");
     configMgr.load();
 
-    ESP_LOGI("setup", "init modbus");
+    // tmp
+    EDUtils::LogConfig networkConfig;
+    strcpy(networkConfig.host, "192.168.1.2");
+    networkConfig.port = 5555;
+    strcpy(networkConfig.uri, "/log");
+
+    networkLogger.init(networkConfig, CONTROLLER_NAME, EDUtils::formatString("Prometey_%s", EDUtils::getMacAddress().c_str()));
+
+    LOGI("setup", "init modbus");
     Serial2.begin(configMgr.getData()->boiler.modbusSpeed, SERIAL_8N1, RS485RX, RS485TX);
     modbus.begin();
     modbus.setTypeMB(MODBUS_RTU);
     modbus.setTimeout(200);
 
-    ESP_LOGI("setup", "init i2c");
+    LOGI("setup", "init i2c");
     Wire.begin(4, 5);
     Wire.setClock(100000);
 
-    ESP_LOGI("setup", "init PCF8574");
+    LOGI("setup", "init PCF8574");
     mos1.begin();
     mos2.begin();
 
-    ESP_LOGI("setup", "init network");
+    LOGI("setup", "init network");
     networkMgr.init(configMgr.getData()->network, true, ETH_ADDR, -1, ETH_MDC_PIN, ETH_MDIO_PIN, ETH_TYPE, ETH_CLK_MODE);
 
-    ESP_LOGI("setup", "init OTA");
+    LOGI("setup", "init OTA");
     ArduinoOTA.setPassword("somestrongpassword");
     ArduinoOTA.begin();
 
-    ESP_LOGI("setup", "mqtt init");
+    LOGI("setup", "mqtt init");
     mqtt.init(configMgr.getData()->mqtt);
     networkMgr.OnConnect([&](bool isConnected) {
+        networkLogger.enable(isConnected);
+
         if (isConnected) {
             mqtt.connect();
         } else {
@@ -200,10 +212,10 @@ void setup()
     });
     healthCheck.registerService(&mqtt);
 
-    ESP_LOGI("setup", "api handler init");
+    LOGI("setup", "api handler init");
     handler.init();
 
-    ESP_LOGI("setup", "discoveryMgr init");
+    LOGI("setup", "discoveryMgr init");
     discoveryMgr.init(
         configMgr.getData()->mqttHADiscoveryPrefix,
         configMgr.getData()->mqttIsHADiscovery,
@@ -212,7 +224,7 @@ void setup()
         }
     );
 
-    ESP_LOGI("setup", "create HA device");
+    LOGI("setup", "create HA device");
     device = discoveryMgr.addDevice();
     device->setHWVersion(deviceHWVersion)
         ->setSWVersion(deviceFWVersion)
@@ -220,10 +232,10 @@ void setup()
         ->setName(deviceName)
         ->setManufacturer(deviceManufacturer);
 
-    ESP_LOGI("setup", "state producer init");
+    LOGI("setup", "state producer init");
     stateProducer.init(configMgr.getData()->mqttStateTopic);
 
-    ESP_LOGI("setup", "init boiler");
+    LOGI("setup", "init boiler");
     boilerDriver.init(configMgr.getData()->boiler.modbusAddress);
     boilerStateMgr.load();
     boiler.init(
@@ -235,21 +247,21 @@ void setup()
     );
     healthCheck.registerService(&boiler);
 
-    ESP_LOGI("setup", "command consumer init");
+    LOGI("setup", "command consumer init");
     commandConsumer.init(configMgr.getData()->mqttCommandTopic);
     mqtt.subscribe(&commandConsumer);
 
-    ESP_LOGI("setup", "outdoor temperature consumer init");
+    LOGI("setup", "outdoor temperature consumer init");
     outdoorTemperatureConsumer.init(configMgr.getData()->boiler.outdoorSensorMqttTopic, configMgr.getData()->boiler.outdoorSensorMqttField);
     mqtt.subscribe(&outdoorTemperatureConsumer);
 
-    ESP_LOGI("setup", "init rooms");
+    LOGI("setup", "init rooms");
     initRooms();
-    ESP_LOGI("setup", "init valves");
+    LOGI("setup", "init valves");
     initValves();
 
     inited = true;
-    ESP_LOGI("setup", "complete");
+    LOGI("setup", "complete");
 }
 
 void loop()
@@ -277,4 +289,6 @@ void loop()
     for (auto roomStateMgr : roomStateMgrs) {
         roomStateMgr->loop();
     }
+
+    networkLogger.update();
 }

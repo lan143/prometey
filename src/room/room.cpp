@@ -1,6 +1,7 @@
 #include <Utils.h>
 
 #include "room.h"
+#include "log/log.h"
 
 void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConfig config)
 {
@@ -61,7 +62,7 @@ void Room::update()
 
 void Room::calculateValvePosition()
 {
-    if (!_state.active || _state.currentTemperature == 0.0f) {
+    if (!_state.active || !_state.currentTemperatureInit) {
         if (_valveOpeningPercent != 100.0f) {
             _valveOpeningPercent = 100.0f;
             for (auto valve : _valves) {
@@ -75,8 +76,11 @@ void Room::calculateValvePosition()
     }
 
     if (_lastUpdateTime == 0 || ((_lastUpdateTime + 300000000) < esp_timer_get_time())) { // loop every 5 minutes
-        auto now = (float_t)esp_timer_get_time() / 1000000.0f;
-        auto dt = now - _state.prevTime;
+        auto now = esp_timer_get_time();
+        auto dt = float_t(now - _state.prevTime) / 1000000.0f;
+        if (dt < 0.0) {
+            dt = 0.0f;
+        }
         _state.prevTime = now;
 
         auto err = _state.setPoint - _state.currentTemperature;
@@ -98,6 +102,12 @@ void Room::calculateValvePosition()
             _boiler->updateRoomTemperatureError(_config.id, 0);
         }
 
+        LOGD(
+            "room",
+            "calculate valve position. id: %d, dt: %f, err: %f, P: %f, I: %f, D: %f, percent: %u",
+            _config.id, dt, err, P, _state.I, D, _valveOpeningPercent
+        );
+
         _lastUpdateTime = esp_timer_get_time();
     }
 }
@@ -109,7 +119,7 @@ void Room::saveState()
             _localStateMgr->setData(&_state);
 
             if (!_localStateMgr->store()) {
-                ESP_LOGE("room", "failed to save state");
+                LOGE("room", "failed to save state");
             }
         }
 
