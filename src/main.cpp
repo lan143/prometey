@@ -174,7 +174,7 @@ void setup()
     EDUtils::LogConfig networkConfig;
     strcpy(networkConfig.host, "192.168.1.2");
     networkConfig.port = 5555;
-    strcpy(networkConfig.uri, "/log");
+    strcpy(networkConfig.uri, "/_bulk");
 
     networkLogger.init(networkConfig, CONTROLLER_NAME, EDUtils::formatString("Prometey_%s", EDUtils::getMacAddress().c_str()));
 
