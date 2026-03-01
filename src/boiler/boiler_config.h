@@ -14,4 +14,5 @@ struct BoilerConfig
     float_t I = 0.0f;
     char outdoorSensorMqttTopic[64] = {0};
     char outdoorSensorMqttField[16] = {0};
+    
 };

@@ -22,6 +22,7 @@
 #include "consumers/outdoor_temperature_consumer.h"
 #include "consumers/room_command_consumer.h"
 #include "consumers/room_temperature_consumer.h"
+#include "relay/relay_mgr.h"
 #include "room/api/room_handler.h"
 #include "room/room.h"
 #include "state/room_producer.h"
@@ -30,8 +31,6 @@
 #include "state/producer.h"
 #include "valve/api/valve_handler.h"
 #include "valve/valve.h"
-#include "valve/driver.h"
-#include "valve/drivers/PCF8574_valve.h"
 #include "web/handler.h"
 
 EDConfig::DataMgr<Config> configMgr(new EDConfig::StorageLittleFS<Config>("/config.bin"));
@@ -49,9 +48,15 @@ EDUtils::StateMgr<State> stateMgr(&stateProducer);
 
 EctoControlAdapterV2 boilerDriver(modbus);
 
+PCF8574 mos1(0x24);
+PCF8574 mos2(0x25);
+
+RelayMgr relayMgr(&mos1, &mos2);
+
 EDConfig::DataMgr<BoilerState> boilerStateMgr(new EDConfig::StorageLittleFS<BoilerState>("/boiler.bin"));
 Boiler boiler(
     boilerDriver,
+    &relayMgr,
     &boilerStateMgr,
     &stateMgr
 );
@@ -68,8 +73,6 @@ RoomHandler roomHandler(&configMgr, &rooms);
 ValveHandler valveHandler(&configMgr);
 Handler handler(&configMgr, &networkMgr, &healthCheck, &boilerHandler, &roomHandler, &valveHandler);
 
-PCF8574 mos1(0x24);
-PCF8574 mos2(0x25);
 
 bool inited = false;
 
@@ -115,17 +118,13 @@ void initValves()
     for (int i = 0; i < VALVES_COUNT; i++) {
         auto valveConfig = configMgr.getData()->valves[i];
         if (valveConfig.enabled) {
-            ValveDriver* driver = nullptr;
-            switch (valveConfig.type) {
-                case VALVE_TYPE_PCF8574:
-                    driver = new PCF8574ValveDriver(valveConfig.channel < 8 ? &mos2 : &mos1);
-                    static_cast<PCF8574ValveDriver*>(driver)->init(valveConfig.channel % 8);
-                    break;
-                default:
-                    continue;
+            auto result = relayMgr.addRelay(valveConfig.type, valveConfig.channel);
+            if (result.second != ADD_RELAY_NO_ERR) {
+                LOGE("main", "failed to init valve relay");
+                return;
             }
 
-            auto valve = new Valve(driver);
+            auto valve = new Valve(result.first);
             valve->init(valveConfig);
 
             for (auto room : rooms) {
@@ -237,6 +236,7 @@ void setup()
 
     LOGI("setup", "init boiler");
     boilerDriver.init(configMgr.getData()->boiler.modbusAddress);
+
     boilerStateMgr.load();
     boiler.init(
         &discoveryMgr,

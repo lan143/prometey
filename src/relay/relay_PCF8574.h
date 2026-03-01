@@ -2,12 +2,12 @@
 
 #include <PCF8574.h>
 
-#include "valve/driver.h"
+#include "relay/relay.h"
 
-class PCF8574ValveDriver : public ValveDriver
+class RelayPCF8574 : public Relay
 {
 public:
-    PCF8574ValveDriver(PCF8574* bus) : _bus(bus) {}
+    RelayPCF8574(PCF8574* bus) : _bus(bus) {}
 
     void init(uint8_t channel) { _channel = channel; }
 
@@ -19,7 +19,7 @@ public:
         return true;
     }
 
-    bool isClosing() const { return _enabled; }
+    bool isEnabled() const { return _enabled; }
 
 private:
     PCF8574* _bus;

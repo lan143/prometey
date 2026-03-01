@@ -2,13 +2,13 @@
 
 #include <Arduino.h>
 
-#include "driver.h"
 #include "config.h"
+#include "relay/relay.h"
 
 class Valve
 {
 public:
-    Valve(ValveDriver* driver) : _driver(driver) {}
+    Valve(Relay* relay) : _relay(relay) {}
 
     void init(ValveConfig config);
     bool setOpening(uint8_t percent)
@@ -24,7 +24,7 @@ public:
     void update();
 
 private:
-    ValveDriver* _driver;
+    Relay* _relay;
     ValveConfig _config;
 
     uint8_t _closePercent = 0.0f;

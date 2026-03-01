@@ -15,6 +15,14 @@ void Boiler::init(
     _config = config;
     _state = *_localStateMgr->getData();
 
+    auto result = _relayMgr->addRelay(RELAY_TYPE_PCF8574, 8); // @todo: load channel and type from config
+    if (result.second != ADD_RELAY_NO_ERR) {
+        LOGE("boiler", "failed to init pump relay");
+        return;
+    }
+
+    _pump = result.first;
+
     const char* chipID = EDUtils::getChipID();
 
     std::list<EDHA::Mode> climateModes;
@@ -212,6 +220,11 @@ void Boiler::update()
             _mqttStateMgr->getState().changeFlameActive(isFlameActive.Value());
         }
 
+        if (isFlameActive.Value() && !isHotWaterActive.Value()) {
+            _pump->changeState(true);
+            _lastPumpEnableTime = esp_timer_get_time();
+        }
+
         auto errorCode = _driver.getErrorCode();
         if (errorCode.Valid()) {
             _mqttStateMgr->getState().changeFault(errorCode.Value() != 0);
@@ -240,6 +253,7 @@ void Boiler::update()
     }
 
     updateAutoMode();
+    disablePump();
     saveState();
 }
 
@@ -277,6 +291,8 @@ void Boiler::updateAutoMode()
         setPoint += _config.P * err;
         _state.I = constrain(_state.I+err*dt*_config.I, -70, 70);
         setPoint = constrain(setPoint + _state.I, 30, 70);
+
+        LOGD("boiler", "calculate setpoint in auto mode. df: %f, err: %f, maxSP: %f, setPoint: %f, I: %f", dt, err, maxSP, setPoint, _state.I);
 
         if (setPoint > 30) {
             if (!_driver.setCentralHeatingSetPoint(setPoint)) {
@@ -319,5 +335,12 @@ void Boiler::saveState()
         }
 
         _lastSaveStateTime = esp_timer_get_time();
+    }
+}
+
+void Boiler::disablePump()
+{
+    if (_pump->isEnabled() && (_lastPumpEnableTime + 120000000) < esp_timer_get_time()) {
+        _pump->changeState(false);
     }
 }

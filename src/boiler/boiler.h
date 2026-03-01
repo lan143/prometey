@@ -12,6 +12,7 @@
 #include "driver.h"
 #include "enums.h"
 #include "boiler/boiler_config.h"
+#include "relay/relay_mgr.h"
 #include "state.h"
 #include "state/state.h"
 
@@ -20,9 +21,10 @@ class Boiler : public EDHealthCheck::Ready
 public:
     Boiler(
         Driver& driver,
+        RelayMgr* relayMgr,
         EDConfig::DataMgr<BoilerState>* localStateMgr,
         EDUtils::StateMgr<State>* mqttStateMgr
-    ) : _driver(driver), _localStateMgr(localStateMgr), _mqttStateMgr(mqttStateMgr) {
+    ) : _driver(driver), _relayMgr(relayMgr), _localStateMgr(localStateMgr), _mqttStateMgr(mqttStateMgr) {
         for (int i = 0; i < ROOMS_COUNT; i++) {
             _roomTemperatureErr[i] = EDUtils::Nullable<float_t>(false, 0.0f);
             _roomSetPoints[i] = EDUtils::Nullable<float_t>(false, 0.0f);
@@ -63,6 +65,7 @@ public:
 private:
     void updateAutoMode();
     void saveState();
+    void disablePump();
 
     float_t maxTemperatureErr()
     {
@@ -104,6 +107,7 @@ private:
     uint64_t _lastUpdateTime = 0;
     uint64_t _lastSaveStateTime = 0;
     uint64_t _lastAutoUpdateTime = 0;
+    uint64_t _lastPumpEnableTime = 0;
     uint64_t _onlineFaultCount = 0;
 
 private:
@@ -118,6 +122,8 @@ private:
 
 private:
     Driver& _driver;
+    RelayMgr* _relayMgr = nullptr;
+    Relay* _pump = nullptr;
     EDConfig::DataMgr<BoilerState>* _localStateMgr = nullptr;
     EDUtils::StateMgr<State>* _mqttStateMgr = nullptr;
 };

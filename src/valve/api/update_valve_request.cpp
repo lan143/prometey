@@ -15,7 +15,7 @@ bool UpdateValveRequest::unmarshalJSON(const char* data)
         }
 
         if (root.containsKey(F("type"))) {
-            _type.setValidValue(root[F("type")].as<ValveType>());
+            _type.setValidValue(root[F("type")].as<RelayType>());
         }
 
         if (root.containsKey(F("channel"))) {
@@ -57,9 +57,9 @@ ValidateErr UpdateValveRequest::validate()
     }
 
     switch (_type.Value()) {
-        case VALVE_TYPE_NONE:
+        case RELAY_TYPE_NONE:
             return ValidateErr(false, "you must specify valve type");
-        case VALVE_TYPE_PCF8574:
+        case RELAY_TYPE_PCF8574:
             if (!_channel.Valid()) {
                 return ValidateErr(false, "channel is required");
             }
