@@ -99,6 +99,7 @@ void initRooms()
             );
             room->init(&discoveryMgr, device, roomConfig);
             rooms.push_back(room);
+            healthCheck.registerService(room);
 
             auto roomCommandConsumer = new RoomCommandConsumer(room);
             roomCommandConsumer->init(roomConfig.mqttCommandTopic);

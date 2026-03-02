@@ -178,6 +178,13 @@ public:
             response->write(payload.c_str());
             request->send(response);
         });
+
+        server->on("/api/boiler/state", HTTP_DELETE, [](AsyncWebServerRequest *request) {
+            LittleFS.remove("/boiler.bin");
+            request->send(200, "application/json", "{}");
+            delay(1000);
+            ESP.restart();
+        });
     }
 
 private:

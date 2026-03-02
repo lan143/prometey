@@ -58,11 +58,17 @@ void Room::update()
 {
     calculateValvePosition();
     saveState();
+    checkToReady();
+}
+
+EDHealthCheck::ReadyResult Room::ready()
+{
+    return EDHealthCheck::ReadyResult(_isReady, _notReadyReason);
 }
 
 void Room::calculateValvePosition()
 {
-    if (!_state.active || !_state.currentTemperatureInit) {
+    if (!_state.active || !_state.currentTemperatureInit || !_isReady) {
         if (_valveOpeningPercent != 100.0f) {
             _valveOpeningPercent = 100.0f;
             for (auto valve : _valves) {
@@ -95,12 +101,7 @@ void Room::calculateValvePosition()
         }
 
         _mqttStateMgr->getState().setValveOpening(_valveOpeningPercent);
-
-        if (_valveOpeningPercent == 100 || _valveOpeningPercent == 0) {
-            _boiler->updateRoomTemperatureError(_config.id, err);
-        } else {
-            _boiler->updateRoomTemperatureError(_config.id, 0);
-        }
+        _boiler->updateRoomTemperatureError(_config.id, err);
 
         LOGD(
             "room",
@@ -124,6 +125,16 @@ void Room::saveState()
         }
 
         _lastSaveStateTime = esp_timer_get_time();
+    }
+}
+
+void Room::checkToReady()
+{
+    if ((_lastUpdateTemperatureTime + 7200000000) < esp_timer_get_time()) { // 2 hour
+        _isReady = false;
+        _notReadyReason = "the temperature sensor has not provided new data for more than 2 hours.";
+    } else {
+        _isReady = true;
     }
 }
 

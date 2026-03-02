@@ -130,6 +130,8 @@ void Boiler::init(
         ->setValueTemplate("{{ value_json.isFault }}")
         ->setPayloadOn("true")
         ->setPayloadOff("false");
+
+    setCentralHeatingMode(_state.mode);
 }
 
 void Boiler::setCentralHeatingMode(CentralHeatingMode mode)
@@ -292,7 +294,7 @@ void Boiler::updateAutoMode()
         _state.I = constrain(_state.I+err*dt*_config.I, -70, 70);
         setPoint = constrain(setPoint + _state.I, 30, 70);
 
-        LOGD("boiler", "calculate setpoint in auto mode. df: %f, err: %f, maxSP: %f, setPoint: %f, I: %f", dt, err, maxSP, setPoint, _state.I);
+        LOGD("boiler", "calculate setpoint in auto mode. dt: %f, err: %f, maxSP: %f, setPoint: %f, I: %f", dt, err, maxSP, setPoint, _state.I);
 
         if (setPoint > 30) {
             if (!_driver.setCentralHeatingSetPoint(setPoint)) {

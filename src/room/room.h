@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <list>
 #include <data_mgr.h>
+#include <ready.h>
 #include <state/state_mgr.h>
 
 #include "boiler/boiler.h"
@@ -11,7 +12,7 @@
 #include "state.h"
 #include "state/room_state.h"
 
-class Room
+class Room : public EDHealthCheck::Ready
 {
 public:
     Room(
@@ -27,6 +28,7 @@ public:
     {
         _state.currentTemperatureInit = true;
         _state.currentTemperature = temperature;
+        _lastUpdateTemperatureTime = esp_timer_get_time();
         _mqttStateMgr->getState().setCurrentTemperature(temperature);
     }
 
@@ -44,16 +46,23 @@ public:
 
     void update();
 
+    EDHealthCheck::ReadyResult ready();
+
 private:
     void calculateValvePosition();
     void saveState();
+    void checkToReady();
 
 private:
     RoomConfig _config;
     RoomState _state;
     uint64_t _lastUpdateTime = 0;
     uint64_t _lastSaveStateTime = 0;
+    uint64_t _lastUpdateTemperatureTime = 0;
     uint8_t _valveOpeningPercent = 0;
+
+    bool _isReady = true;
+    std::string _notReadyReason;
 
     std::list<Valve*> _valves;
     Boiler* _boiler = nullptr;
