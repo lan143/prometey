@@ -51,7 +51,6 @@ void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConf
     _mqttStateMgr->getState().setMode(_state.active ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
     _mqttStateMgr->getState().setValveOpening(100.0f);
     _mqttStateMgr->getState().changeSetPoint(_state.setPoint);
-    _boiler->updateRoomSetPoint(_config.id, _state.setPoint);
 }
 
 void Room::update()
@@ -101,12 +100,18 @@ void Room::calculateValvePosition()
         }
 
         _mqttStateMgr->getState().setValveOpening(_valveOpeningPercent);
-        _boiler->updateRoomTemperatureError(_config.id, err);
+
+        auto demand = 0.0f;
+        if (err > 0.2f && _valveOpeningPercent == 100.0f) { // require more power from boiler
+            demand = constrain(err / 2.0f, 0.0f, 1.0f); // normalized energy demand   
+        }
+
+        _boiler->updateRoomEnergyDemand(_config.id, demand);
 
         LOGD(
             "room",
-            "calculate valve position. id: %d, dt: %f, err: %f, P: %f, I: %f, D: %f, percent: %u",
-            _config.id, dt, err, P, _state.I, D, _valveOpeningPercent
+            "calculate valve position. id: %d, dt: %f, err: %f, P: %f, I: %f, D: %f, demand: %f percent: %u",
+            _config.id, dt, err, P, _state.I, D, demand, _valveOpeningPercent
         );
 
         _lastUpdateTime = esp_timer_get_time();

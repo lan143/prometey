@@ -35,7 +35,6 @@ public:
     void updateSetPoint(float_t setPoint)
     {
         _state.setPoint = setPoint;
-        _boiler->updateRoomSetPoint(_config.id, setPoint);
         _mqttStateMgr->getState().changeSetPoint(setPoint);
     }
 

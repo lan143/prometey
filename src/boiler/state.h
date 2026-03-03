@@ -10,19 +10,13 @@ struct BoilerState
     float_t centralHeatingSetPoint = 30;
     float_t hotWaterSetPoint = 30;
     float_t outdoorTemperature = 0.0f;
-    float_t maxRoomTemperatureErr = 0.0f;
-    float_t maxRoomSetPoint = 0.0f;
-    float_t I = 0.0f;
 
     bool operator==(BoilerState& other)
     {
         return mode == other.mode
             && centralHeatingSetPoint == other.centralHeatingSetPoint
             && hotWaterSetPoint == other.hotWaterSetPoint
-            && outdoorTemperature == other.outdoorTemperature
-            && maxRoomTemperatureErr == other.maxRoomTemperatureErr
-            && maxRoomSetPoint == other.maxRoomSetPoint
-            && I != other.I;
+            && outdoorTemperature == other.outdoorTemperature;
     }
 
     bool operator!=(BoilerState& other)

@@ -26,8 +26,7 @@ public:
         EDUtils::StateMgr<State>* mqttStateMgr
     ) : _driver(driver), _relayMgr(relayMgr), _localStateMgr(localStateMgr), _mqttStateMgr(mqttStateMgr) {
         for (int i = 0; i < ROOMS_COUNT; i++) {
-            _roomTemperatureErr[i] = EDUtils::Nullable<float_t>(false, 0.0f);
-            _roomSetPoints[i] = EDUtils::Nullable<float_t>(false, 0.0f);
+            _roomsEnergyDemand[i] = EDUtils::Nullable<float_t>(false, 0.0f);
         }
     }
 
@@ -45,19 +44,13 @@ public:
     void setHotWaterSetPoint(float_t setPoint);
 
     void setOutdoorTemperature(float_t temperature) { _state.outdoorTemperature = temperature; }
-    void updateRoomTemperatureError(uint8_t roomID, float_t err)
+    void updateRoomEnergyDemand(uint8_t roomID, float_t demand)
     {
         if (roomID < ROOMS_COUNT) {
-            _roomTemperatureErr[roomID].setValidValue(err);
+            _roomsEnergyDemand[roomID].setValidValue(demand);
         }
     }
-    void updateRoomSetPoint(uint8_t roomID, float_t setPoint)
-    {
-        if (roomID < ROOMS_COUNT) {
-            _roomSetPoints[roomID].setValidValue(setPoint);
-        }
-    }
-
+    
     void update();
 
     EDHealthCheck::ReadyResult ready();
@@ -67,38 +60,23 @@ private:
     void saveState();
     void disablePump();
 
-    float_t maxTemperatureErr()
+    float_t getRoomEnergyDemand()
     {
-        float_t err = 0.0f;
-        bool init = false;
+        float_t val = 0.0f;
+        uint8_t count = 0;
 
         for (int i = 0; i < ROOMS_COUNT; i++) {
-            if (!init && _roomTemperatureErr[i].Valid()) {
-                err = _roomTemperatureErr[i].Value();
-                init = true;
-            } else if (init && _roomTemperatureErr[i].Valid() && err < _roomTemperatureErr[i].Value()) {
-                err = _roomTemperatureErr[i].Value();
+            if (_roomsEnergyDemand[i].Valid() && _roomsEnergyDemand[i].Value() > 0.0f) {
+                val += _roomsEnergyDemand[i].Value();
+                count++;
             }
         }
 
-        return err;
-    }
-
-    float_t maxSetPoint()
-    {
-        float_t setPoint = 0.0f;
-        bool init = false;
-
-        for (int i = 0; i < ROOMS_COUNT; i++) {
-            if (!init && _roomSetPoints[i].Valid()) {
-                setPoint = _roomSetPoints[i].Value();
-                init = true;
-            } else if (init && _roomSetPoints[i].Valid() && setPoint < _roomSetPoints[i].Value()) {
-                setPoint = _roomSetPoints[i].Value();
-            }
+        if (count == 0) {
+            return 0.0f;
         }
 
-        return setPoint;
+        return val / count;
     }
 
 private:
@@ -116,8 +94,7 @@ private:
     float_t _kP = 0.0f;
     float_t _kI = 0.0;
 
-    EDUtils::Nullable<float_t> _roomTemperatureErr[ROOMS_COUNT];
-    EDUtils::Nullable<float_t> _roomSetPoints[ROOMS_COUNT];
+    EDUtils::Nullable<float_t> _roomsEnergyDemand[ROOMS_COUNT];
     uint64_t _prevTime = 0;
 
 private:

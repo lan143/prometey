@@ -281,20 +281,24 @@ void Boiler::updateAutoMode()
     }
 
     if (_lastAutoUpdateTime == 0 || ((_lastAutoUpdateTime + 300000000) < esp_timer_get_time())) { // every 5 min
-        auto dt = (float_t)(esp_timer_get_time() - _prevTime) / 1000000.0f;
-        auto err = maxTemperatureErr();
-        auto maxSP = maxSetPoint();
-        if (maxSP == 0.0f) {
-            maxSP = 25;
-        }
-
+        auto demand = getRoomEnergyDemand();
         _prevTime = esp_timer_get_time();
-        auto setPoint = _config.K * (maxSP - _state.outdoorTemperature) + _config.B;
-        setPoint += _config.P * err;
-        _state.I = constrain(_state.I+err*dt*_config.I, -70, 70);
-        setPoint = constrain(setPoint + _state.I, 30, 70);
+        auto k = 1.1f; // todo: move to config
+        auto Tu = 25.0f; // todo: get avg room setpoint?
+        auto ku = 2.0f; // todo: move to config
+        auto a = -0.21f*k - 0.06f;
+        auto b = 6.04f*k + 1.98f;
+        auto c = -5.06f*k + 18.06f;
+        auto x = -0.2f*_state.outdoorTemperature + 5.0f;
+        auto Tn = a * pow(x, 2) + b * x + c;
+        auto Tk = (Tu - 20) * ku;
+        auto setPoint = constrain(Tn + Tk + demand * 10.0f, 30, 80);
 
-        LOGD("boiler", "calculate setpoint in auto mode. dt: %f, err: %f, maxSP: %f, setPoint: %f, I: %f", dt, err, maxSP, setPoint, _state.I);
+        LOGD(
+            "boiler",
+            "calculate setpoint in auto mode. Tn: %f, Tk: %f, demand: %f, setPoint: %f",
+            Tn, Tk, demand, setPoint
+        );
 
         if (setPoint > 30) {
             if (!_driver.setCentralHeatingSetPoint(setPoint)) {
