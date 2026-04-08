@@ -27,7 +27,7 @@ private:
     Relay* _relay;
     ValveConfig _config;
 
-    uint8_t _closePercent = 0.0f;
+    uint8_t _closePercent = 0;
     uint64_t _nextUpdateTime = 0;
-    uint32_t _closeTime = 0;
+    uint64_t _closeTime = 0;
 };

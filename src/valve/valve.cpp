@@ -3,8 +3,7 @@
 void Valve::init(ValveConfig config)
 {
     _config = config;
-    _config.windowTime = 20000000; // tmp
-    _closePercent = 0;
+    _config.windowTime = 60000000; // tmp
 
     _closeTime = _config.windowTime * _closePercent / 100;
     if (_closeTime > 0) {
@@ -21,7 +20,6 @@ void Valve::update()
         if (_relay->isEnabled()) {
             _relay->changeState(false);
             _nextUpdateTime = esp_timer_get_time() + (_config.windowTime - _closeTime);
-            _closeTime = 0;
         } else {
             _closeTime = _config.windowTime * _closePercent / 100;
             if (_closeTime > 0) {

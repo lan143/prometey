@@ -192,10 +192,6 @@ void Boiler::update()
         }
 
         _onlineFaultCount = 0;
-        /*auto isCentralHeatingEnabled = _driver.isCentralHeatingEnabled();
-        if (isCentralHeatingEnabled.Valid()) {
-            _stateMgr->getState().setCentralHeatingMode(isCentralHeatingEnabled.Value() ? EDHA::MODE_HEAT : EDHA::MODE_OFF);
-        }*/
 
         auto currentCentralHeatingTemperature = _driver.getCurrentCentralHeatingTemperature();
         if (currentCentralHeatingTemperature.Valid()) {
@@ -283,9 +279,9 @@ void Boiler::updateAutoMode()
     if (_lastAutoUpdateTime == 0 || ((_lastAutoUpdateTime + 300000000) < esp_timer_get_time())) { // every 5 min
         auto demand = getRoomEnergyDemand();
         _prevTime = esp_timer_get_time();
-        auto k = 1.1f; // todo: move to config
-        auto Tu = 25.0f; // todo: get avg room setpoint?
-        auto ku = 2.0f; // todo: move to config
+        auto k = 1.0f; // todo: move to config
+        auto Tu = 26.0f; // todo: get avg room setpoint?
+        auto ku = 1.2f; // todo: move to config
         auto a = -0.21f*k - 0.06f;
         auto b = 6.04f*k + 1.98f;
         auto c = -5.06f*k + 18.06f;

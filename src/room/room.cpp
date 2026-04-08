@@ -77,6 +77,8 @@ void Room::calculateValvePosition()
             _mqttStateMgr->getState().setValveOpening(_valveOpeningPercent);
         }
 
+        _boiler->updateRoomEnergyDemand(_config.id, 0.0f);
+
         return;
     }
 
