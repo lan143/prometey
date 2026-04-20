@@ -1,7 +1,7 @@
 #include <Utils.h>
+#include <log/log.h>
 
 #include "room.h"
-#include "log/log.h"
 
 void Room::init(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, RoomConfig config)
 {
