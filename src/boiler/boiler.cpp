@@ -296,30 +296,16 @@ void Boiler::updateAutoMode()
             Tn, Tk, demand, setPoint
         );
 
-        if (setPoint > 30) {
-            if (!_driver.setCentralHeatingSetPoint(setPoint)) {
-                LOGE("boiler", "failed to update central heating setpoint");
-                _lastAutoUpdateTime += 5000000;
-                return;
-            }
+        if (!_driver.setCentralHeatingSetPoint(setPoint)) {
+            LOGE("boiler", "failed to update central heating setpoint");
+            _lastAutoUpdateTime += 5000000;
+            return;
+        }
 
-            if (!_driver.changeCentralHeatingState(true)) {
-                LOGE("boiler", "failed to enable central heating");
-                _lastAutoUpdateTime += 5000000;
-                return;
-            }
-        } else {
-            if (!_driver.setCentralHeatingSetPoint(30)) {
-                LOGE("boiler", "failed to update central heating setpoint");
-                _lastAutoUpdateTime += 5000000;
-                return;
-            }
-
-            if (!_driver.changeCentralHeatingState(false)) {
-                LOGE("boiler", "failed to disable central heating");
-                _lastAutoUpdateTime += 5000000;
-                return;
-            }
+        if (!_driver.changeCentralHeatingState(setPoint >= 35)) {
+            LOGE("boiler", "failed to change central heating");
+            _lastAutoUpdateTime += 5000000;
+            return;
         }
 
         _lastAutoUpdateTime = esp_timer_get_time();

@@ -18,6 +18,8 @@ public:
         }
 
         _closePercent = 100 - percent;
+        _closeTime = (int64_t)_config.windowTime * (int64_t)_closePercent / 100;
+        _nextUpdateTime = esp_timer_get_time();
         
         return true;
     }
@@ -28,6 +30,6 @@ private:
     ValveConfig _config;
 
     uint8_t _closePercent = 0;
-    uint64_t _nextUpdateTime = 0;
-    uint64_t _closeTime = 0;
+    int64_t _nextUpdateTime = 0;
+    int64_t _closeTime = 0;
 };

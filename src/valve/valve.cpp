@@ -14,20 +14,20 @@ void Valve::update()
 {
     if (_nextUpdateTime < esp_timer_get_time()) {
         if (_relay->isEnabled()) {
-            int64_t openTime = (uint64_t)_config.windowTime - _closeTime;
+            int64_t openTime = (int64_t)_config.windowTime - _closeTime;
             if (openTime > 0) {
                 _relay->changeState(false);
                 _nextUpdateTime = esp_timer_get_time() + openTime;
             } else {
-                _nextUpdateTime = esp_timer_get_time() + (uint64_t)_config.windowTime;
+                _nextUpdateTime = esp_timer_get_time() + (int64_t)_config.windowTime;
             }
         } else {
-            _closeTime = (uint64_t)_config.windowTime * _closePercent / 100;
+            _closeTime = (int64_t)_config.windowTime * (int64_t)_closePercent / 100;
             if (_closeTime > 0) {
                 _nextUpdateTime = esp_timer_get_time() + _closeTime;
                 _relay->changeState(true);
             } else {
-                _nextUpdateTime = esp_timer_get_time() + (uint64_t)_config.windowTime;
+                _nextUpdateTime = esp_timer_get_time() + (int64_t)_config.windowTime;
             }
         }
     }

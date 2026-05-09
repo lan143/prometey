@@ -67,7 +67,7 @@ EDHealthCheck::ReadyResult Room::ready()
 
 void Room::calculateValvePosition()
 {
-    if (!_state.active || !_state.currentTemperatureInit || !_isReady) {
+    if (!_state.active || !_state.currentTemperatureInit || !_isReady || !_boiler->isCentralHeatingEnabled()) {
         if (_valveOpeningPercent != 100.0f) {
             _valveOpeningPercent = 100.0f;
             for (auto valve : _valves) {

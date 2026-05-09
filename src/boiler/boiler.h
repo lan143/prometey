@@ -38,6 +38,13 @@ public:
         BoilerConfig config
     );
 
+    bool isCentralHeatingEnabled() const
+    {
+        auto isCentralHeatingEnabled = _driver.isCentralHeatingEnabled();
+
+        return isCentralHeatingEnabled.Valid() ? isCentralHeatingEnabled.Value() : false;
+    }
+
     void setCentralHeatingMode(CentralHeatingMode mode);
     void updateHotWaterState(bool enabled);
     void setCentralHeatingSetPoint(float_t setPoint);
