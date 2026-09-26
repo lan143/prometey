@@ -84,12 +84,8 @@ ValidateErr UpdateRoomRequest::validate()
                 return ValidateErr(false, "max mqtt temperature sensor topic lenght is 64 symbols");
             }
 
-            if (!_mqttTemperatureSensorField.Valid() || _mqttTemperatureSensorField.Value().size() == 0) {
-                return ValidateErr(false, "mqtt temperature sensor field is required");
-            }
-
             if (_mqttTemperatureSensorField.Value().size() > 16) {
-                return ValidateErr(false, "max mqtt temperature sensor field lenght is 64 symbols");
+                return ValidateErr(false, "max mqtt temperature sensor field lenght is 16 symbols");
             }
             break;
         default:
