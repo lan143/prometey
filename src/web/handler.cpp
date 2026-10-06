@@ -7,6 +7,7 @@
 #include <string.h>
 #include "defines.h"
 #include "handler.h"
+#include "web/reboot_after_response.h"
 
 void Handler::init()
 {
@@ -20,30 +21,14 @@ void Handler::init()
     _valveHandler->registerHandlers(_server);
     _healthCheck->registerHandlers(_server);
 
-    _server->on("/api/wifi/list", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        /*AsyncResponseStream *response = request->beginResponseStream("application/json");
+    _networkApi->registerRoutes(*_server);
 
-        DynamicJsonDocument json(200);
-
-        auto networks = this->_wifiService->getWifiNetworks();
-
-        for (auto i = networks.begin(); i != networks.end(); i++) {
-            json.add(*i);
-        }
-
-        serializeJson(json, *response);
-
-        request->send(response);*/
-    });
-    
     _server->on("/api/settings", HTTP_GET, [this](AsyncWebServerRequest *request) {
         AsyncResponseStream *response = request->beginResponseStream("application/json");
 
         std::string payload = EDUtils::buildJson([this](JsonObject entity) {
             Config* config = _configMgr->getData();
 
-            entity["wifiSSID"] = config->network.wifiSSID;
-            entity["wifiPassword"] = config->network.wifiPassword;
             entity["mqttHost"] = config->mqtt.host;
             entity["mqttPort"] = config->mqtt.port;
             entity["mqttLogin"] = config->mqtt.login;
@@ -56,35 +41,6 @@ void Handler::init()
 
         response->write(payload.c_str());
         request->send(response);
-    });
-
-    _server->on("/api/settings/wifi", HTTP_POST, [this](AsyncWebServerRequest *request) {
-        if (!request->hasParam("wifiSSID", true) || !request->hasParam("wifiPassword", true)) {
-            request->send(422, "application/json", "{\"message\": \"not present wifiSSID or wifiPassword in request\"}");
-            return;
-        }
-
-        const AsyncWebParameter* wifiSSID = request->getParam("wifiSSID", true);
-        const AsyncWebParameter* wifiPassword = request->getParam("wifiPassword", true);
-
-        if (wifiSSID->value().length() > WIFI_SSID_LEN-1) {
-            request->send(422, "application/json", "{\"message\": \"WiFi SSID lenght more 32 symbols\"}");
-            return;
-        }
-
-        if (wifiPassword->value().length() > WIFI_PWD_LEN-1) {
-            request->send(422, "application/json", "{\"message\": \"WiFi password lenght more 63 symbols\"}");
-            return;
-        }
-
-        Config* config = _configMgr->getData();
-        std::strcpy(config->network.wifiSSID, wifiSSID->value().c_str());
-        std::strcpy(config->network.wifiPassword, wifiPassword->value().c_str());
-        config->network.isAPMode = false;
-
-        _configMgr->store();
-
-        request->send(200, "application/json", "{}");
     });
 
     _server->on("/api/settings/mqtt", HTTP_POST, [this](AsyncWebServerRequest *request) {
@@ -176,12 +132,6 @@ void Handler::init()
         AsyncResponseStream *response = request->beginResponseStream("application/json");
 
         std::string data = EDUtils::buildJson([this](JsonObject entity) {
-            if (_networkMgr->isConnected()) {
-                entity[F("wifiStatus")] = "connected";
-            } else {
-                entity[F("wifiStatus")] = "disconnected";
-            }
-
             entity[F("freeHeap")] = ESP.getFreeHeap();
             entity[F("uptime")] = esp_timer_get_time() / 1000000;
 
@@ -229,9 +179,16 @@ void Handler::init()
 
     _server->on("/api/reboot", HTTP_POST, [this](AsyncWebServerRequest *request) {
         request->send(200, "application/json", "{}");
-        delay(200);
-        ESP.restart();
+        RebootAfterResponse::schedule(200);
     });
+
+    // The backup endpoint must be registered before the single-file config
+    // endpoint: a plain "/api/config" matcher is BackwardCompatible, i.e. it also
+    // matches "/api/config/..." (WebServer.cpp:339), and handlers are matched in
+    // registration order (_attachHandler, WebServer.cpp:145-151).
+    _configBackupHandler.registerHandlers(_server);
+
+    _configFileHandler.registerHandlers(_server);
 
     _server->begin();
 }

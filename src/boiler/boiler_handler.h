@@ -7,6 +7,7 @@
 
 #include "config.h"
 #include "log/log.h"
+#include "web/reboot_after_response.h"
 
 class BoilerHandler
 {
@@ -51,6 +52,11 @@ public:
                 || !request->hasParam("P", true)
                 || !request->hasParam("I", true)) {
                 request->send(422, "application/json", "{\"message\": \"You must specify K, B, P and I coefficients\"}");
+                return;
+            }
+
+            if (!request->hasParam("minSetPoint", true)) {
+                request->send(422, "application/json", "{\"message\": \"not present minSetPoint in request\"}");
                 return;
             }
 
@@ -113,26 +119,39 @@ public:
             const AsyncWebParameter* iParam = request->getParam("I", true);
 
             float_t K;
-            if (EDUtils::str2float(&K, kParam->value().c_str()) != EDUtils::STR2INT_SUCCESS) {
+            if (EDUtils::str2float(&K, kParam->value().c_str()) != EDUtils::STR2INT_SUCCESS || !isfinite(K)) {
                 request->send(422, "application/json", "{\"message\": \"Incorrect K value\"}");
                 return;
             }
 
             float_t B;
-            if (EDUtils::str2float(&B, bParam->value().c_str()) != EDUtils::STR2INT_SUCCESS) {
+            if (EDUtils::str2float(&B, bParam->value().c_str()) != EDUtils::STR2INT_SUCCESS || !isfinite(B)) {
                 request->send(422, "application/json", "{\"message\": \"Incorrect B value\"}");
                 return;
             }
 
             float_t P;
-            if (EDUtils::str2float(&P, pParam->value().c_str()) != EDUtils::STR2INT_SUCCESS) {
+            if (EDUtils::str2float(&P, pParam->value().c_str()) != EDUtils::STR2INT_SUCCESS || !isfinite(P)) {
                 request->send(422, "application/json", "{\"message\": \"Incorrect P value\"}");
                 return;
             }
 
             float_t I;
-            if (EDUtils::str2float(&I, iParam->value().c_str()) != EDUtils::STR2INT_SUCCESS) {
+            if (EDUtils::str2float(&I, iParam->value().c_str()) != EDUtils::STR2INT_SUCCESS || !isfinite(I)) {
                 request->send(422, "application/json", "{\"message\": \"Incorrect I value\"}");
+                return;
+            }
+
+            const AsyncWebParameter* minSetPointParam = request->getParam("minSetPoint", true);
+
+            float_t minSetPoint;
+            if (EDUtils::str2float(&minSetPoint, minSetPointParam->value().c_str()) != EDUtils::STR2INT_SUCCESS || !isfinite(minSetPoint)) {
+                request->send(422, "application/json", "{\"message\": \"Incorrect minSetPoint value\"}");
+                return;
+            }
+
+            if (minSetPoint < 30.0f || minSetPoint > 80.0f) {
+                request->send(422, "application/json", "{\"message\": \"minSetPoint must be between 30 and 80\"}");
                 return;
             }
 
@@ -140,6 +159,9 @@ public:
             config.B = B;
             config.P = P;
             config.I = I;
+            config.minSetPoint = minSetPoint;
+
+            config.outdoorSensor = outdoorSensor;
 
             if (outdoorSensor == BOILER_OUTDOOR_SENSOR_MQTT) {
                 const AsyncWebParameter* outdoorSensorMqttTopicParam = request->getParam("outdoorSensorMqttTopic", true);
@@ -170,6 +192,7 @@ public:
                 entity["B"] = config.B;
                 entity["P"] = config.P;
                 entity["I"] = config.I;
+                entity["minSetPoint"] = config.minSetPoint;
                 entity["outdoorSensor"] = config.outdoorSensor;
                 entity["outdoorSensorMqttTopic"] = config.outdoorSensorMqttTopic;
                 entity["outdoorSensorMqttField"] = config.outdoorSensorMqttField;
@@ -182,8 +205,7 @@ public:
         server->on("/api/boiler/state", HTTP_DELETE, [](AsyncWebServerRequest *request) {
             LittleFS.remove("/boiler.bin");
             request->send(200, "application/json", "{}");
-            delay(1000);
-            ESP.restart();
+            RebootAfterResponse::schedule(1000);
         });
     }
 

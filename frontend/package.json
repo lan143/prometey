@@ -1,0 +1,23 @@
+{
+  "name": "prometey-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Prometey ESP32 controller web panel (Preact SPA built into ../data)",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "edn-network-ui": "file:../../ed-network/frontend",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@preact/preset-vite": "^2.10.6",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6"
+  }
+}

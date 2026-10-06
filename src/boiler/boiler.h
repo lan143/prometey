@@ -16,6 +16,17 @@
 #include "state.h"
 #include "state/state.h"
 
+struct RoomStatus {
+    bool active = false;
+    bool ready = false;
+    float_t err = 0.0f;      // room setPoint - currentTemperature
+    float_t opening = 0.0f;  // logical PID valve opening, 0-100
+
+    RoomStatus() {}
+    RoomStatus(bool isActive, bool isReady, float_t error, float_t valveOpening)
+        : active(isActive), ready(isReady), err(error), opening(valveOpening) {}
+};
+
 class Boiler : public EDHealthCheck::Ready
 {
 public:
@@ -26,7 +37,7 @@ public:
         EDUtils::StateMgr<State>* mqttStateMgr
     ) : _driver(driver), _relayMgr(relayMgr), _localStateMgr(localStateMgr), _mqttStateMgr(mqttStateMgr) {
         for (int i = 0; i < ROOMS_COUNT; i++) {
-            _roomsEnergyDemand[i] = EDUtils::Nullable<float_t>(false, 0.0f);
+            _roomsStatus[i] = EDUtils::Nullable<RoomStatus>(false, RoomStatus());
         }
     }
 
@@ -51,10 +62,10 @@ public:
     void setHotWaterSetPoint(float_t setPoint);
 
     void setOutdoorTemperature(float_t temperature) { _state.outdoorTemperature = temperature; }
-    void updateRoomEnergyDemand(uint8_t roomID, float_t demand)
+    void updateRoomStatus(uint8_t roomID, const RoomStatus& status)
     {
         if (roomID < ROOMS_COUNT) {
-            _roomsEnergyDemand[roomID].setValidValue(demand);
+            _roomsStatus[roomID].setValidValue(status);
         }
     }
     
@@ -67,25 +78,6 @@ private:
     void saveState();
     void disablePump();
 
-    float_t getRoomEnergyDemand()
-    {
-        float_t val = 0.0f;
-        uint8_t count = 0;
-
-        for (int i = 0; i < ROOMS_COUNT; i++) {
-            if (_roomsEnergyDemand[i].Valid() && _roomsEnergyDemand[i].Value() > 0.0f) {
-                val += _roomsEnergyDemand[i].Value();
-                count++;
-            }
-        }
-
-        if (count == 0) {
-            return 0.0f;
-        }
-
-        return val / count;
-    }
-
 private:
     BoilerState _state;
     BoilerConfig _config;
@@ -96,13 +88,12 @@ private:
     uint64_t _onlineFaultCount = 0;
 
 private:
-    float_t _K = 0.0f;
-    float_t _kB = 0.0f;
-    float_t _kP = 0.0f;
-    float_t _kI = 0.0;
-
-    EDUtils::Nullable<float_t> _roomsEnergyDemand[ROOMS_COUNT];
     uint64_t _prevTime = 0;
+    bool _interlockOn = true;
+    uint8_t _noDemandTicks = 0;
+    uint64_t _lastChDisableTime = 0;
+
+    EDUtils::Nullable<RoomStatus> _roomsStatus[ROOMS_COUNT];
 
 private:
     Driver& _driver;

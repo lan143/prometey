@@ -67,17 +67,11 @@ EDHealthCheck::ReadyResult Room::ready()
 
 void Room::calculateValvePosition()
 {
-    if (!_state.active || !_state.currentTemperatureInit || !_isReady || !_boiler->isCentralHeatingEnabled()) {
-        if (_valveOpeningPercent != 100.0f) {
-            _valveOpeningPercent = 100.0f;
-            for (auto valve : _valves) {
-                valve->setOpening(_valveOpeningPercent);
-            }
+    if (!_state.active || !_state.currentTemperatureInit || !_isReady) {
+        driveValves(100);
+        _valveOpeningPercent = 100;
 
-            _mqttStateMgr->getState().setValveOpening(_valveOpeningPercent);
-        }
-
-        _boiler->updateRoomEnergyDemand(_config.id, 0.0f);
+        _boiler->updateRoomStatus(_config.id, RoomStatus{false, false, 0.0f, 0.0f});
 
         return;
     }
@@ -97,27 +91,46 @@ void Room::calculateValvePosition()
         _state.prevErr = err;
 
         _valveOpeningPercent = constrain(int(P+_state.I+D), 0, 100);
-        for (auto valve : _valves) {
-            valve->setOpening(_valveOpeningPercent);
-        }
 
-        _mqttStateMgr->getState().setValveOpening(_valveOpeningPercent);
+        uint8_t target = _boiler->isCentralHeatingEnabled() ? _valveOpeningPercent : 100;
+        driveValves(target);
 
-        auto demand = 0.0f;
-        if (err > 0.2f && _valveOpeningPercent == 100.0f) { // require more power from boiler
-            demand = constrain(err / 2.0f, 0.0f, 1.0f); // normalized energy demand   
-        }
-
-        _boiler->updateRoomEnergyDemand(_config.id, demand);
+        _boiler->updateRoomStatus(
+            _config.id,
+            RoomStatus{_state.active, true, err, (float_t)_valveOpeningPercent}
+        );
 
         LOGD(
             "room",
-            "calculate valve position. id: %d, dt: %f, err: %f, P: %f, I: %f, D: %f, demand: %f percent: %u",
-            _config.id, dt, err, P, _state.I, D, demand, _valveOpeningPercent
+            "calculate valve position. id: %d, dt: %f, err: %f, P: %f, I: %f, D: %f, opening: %u, target: %u",
+            _config.id, dt, err, P, _state.I, D, _valveOpeningPercent, target
         );
 
         _lastUpdateTime = esp_timer_get_time();
+        return;
     }
+
+    if (_boiler->isCentralHeatingEnabled()) {
+        if (_actuatedOpeningPercent != _valveOpeningPercent) {
+            driveValves(_valveOpeningPercent);
+        }
+    } else if (_actuatedOpeningPercent != 100) {
+        driveValves(100);
+    }
+}
+
+void Room::driveValves(uint8_t percent)
+{
+    if (_actuatedOpeningPercent == percent) {
+        return;
+    }
+
+    _actuatedOpeningPercent = percent;
+    for (auto valve : _valves) {
+        valve->setOpening(percent);
+    }
+
+    _mqttStateMgr->getState().setValveOpening(percent);
 }
 
 void Room::saveState()

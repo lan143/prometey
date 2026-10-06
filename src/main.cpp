@@ -11,10 +11,12 @@
 #include <PCF8574.h>
 #include <Wire.h>
 #include <network/network.h>
+#include <network/network_api.h>
 #include <log/log.h>
 
 #include "defines.h"
 #include "config.h"
+#include "migration/config_migration.h"
 #include "boiler/boiler.h"
 #include "boiler/boiler_handler.h"
 #include "boiler/drivers/ectocontrol_adapter_v2.h"
@@ -32,9 +34,11 @@
 #include "valve/api/valve_handler.h"
 #include "valve/valve.h"
 #include "web/handler.h"
+#include "web/reboot_after_response.h"
 
 EDConfig::DataMgr<Config> configMgr(new EDConfig::StorageLittleFS<Config>("/config.bin"));
 EDNetwork::NetworkMgr networkMgr;
+EDNetwork::NetworkApi networkApi(networkMgr);
 EDMQTT::MQTT mqtt;
 
 ModbusClient modbus(Serial2);
@@ -71,7 +75,7 @@ std::list<Valve*> valves;
 BoilerHandler boilerHandler(&configMgr);
 RoomHandler roomHandler(&configMgr, &rooms);
 ValveHandler valveHandler(&configMgr);
-Handler handler(&configMgr, &networkMgr, &healthCheck, &boilerHandler, &roomHandler, &valveHandler);
+Handler handler(&configMgr, &networkApi, &healthCheck, &boilerHandler, &roomHandler, &valveHandler);
 
 
 bool inited = false;
@@ -167,8 +171,17 @@ void setup()
         }
     });
 
+    auto* legacyConfig = new ConfigV2();
+    bool hasLegacyConfig = readLegacyConfigV2(legacyConfig);
+
     LOGI("setup", "load config");
     configMgr.load();
+
+    if (hasLegacyConfig) {
+        applyLegacyConfigV2(configMgr.getData(), *legacyConfig);
+        configMgr.store();
+    }
+    delete legacyConfig;
 
     // tmp
     EDUtils::LogConfig networkConfig;
@@ -212,6 +225,11 @@ void setup()
     });
     healthCheck.registerService(&mqtt);
 
+    networkApi.onSettingsChanged([&](const EDNetwork::Config& config) -> bool {
+        configMgr.getData()->network = config;
+        return configMgr.store();
+    });
+
     LOGI("setup", "api handler init");
     handler.init();
 
@@ -238,7 +256,17 @@ void setup()
     LOGI("setup", "init boiler");
     boilerDriver.init(configMgr.getData()->boiler.modbusAddress);
 
+    auto* legacyBoilerState = new BoilerStateV1();
+    bool hasLegacyBoilerState = readLegacyBoilerStateV1(legacyBoilerState);
+
     boilerStateMgr.load();
+
+    if (hasLegacyBoilerState) {
+        applyLegacyBoilerStateV1(boilerStateMgr.getData(), *legacyBoilerState);
+        boilerStateMgr.store();
+    }
+    delete legacyBoilerState;
+
     boiler.init(
         &discoveryMgr,
         device,
@@ -267,6 +295,8 @@ void setup()
 
 void loop()
 {
+    RebootAfterResponse::update();
+
     if (!inited) {
         return;
     }

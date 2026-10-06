@@ -8,6 +8,7 @@
 #include "config.h"
 #include "room/room.h"
 #include "room/api/update_room_request.h"
+#include "web/reboot_after_response.h"
 
 class RoomHandler
 {
@@ -57,8 +58,7 @@ public:
             }
 
             request->send(200, "application/json", "{}");
-            delay(1000);
-            ESP.restart();
+            RebootAfterResponse::schedule(1000);
         });
 
         server->on("/api/settings/room", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [this](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {

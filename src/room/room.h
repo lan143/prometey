@@ -49,6 +49,7 @@ public:
 
 private:
     void calculateValvePosition();
+    void driveValves(uint8_t percent);
     void saveState();
     void checkToReady();
 
@@ -59,6 +60,7 @@ private:
     uint64_t _lastSaveStateTime = 0;
     uint64_t _lastUpdateTemperatureTime = 0;
     uint8_t _valveOpeningPercent = 0;
+    uint8_t _actuatedOpeningPercent = 100;
 
     bool _isReady = true;
     std::string _notReadyReason;

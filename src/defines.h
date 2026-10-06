@@ -19,6 +19,8 @@
 
 #define EEPROM_SIZE 6000
 
+#define VALVE_MIN_PHYSICAL_OPENING 70
+
 #ifndef CONTROLLER_NAME
 #define CONTROLLER_NAME "Prometey"
 #endif

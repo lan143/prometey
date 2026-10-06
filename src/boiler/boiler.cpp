@@ -33,6 +33,13 @@ void Boiler::init(
     auto minCentralHeatingTemperature = _driver.getMinCentralHeatingTemperature();
     auto maxCentralHeatingTemperature = _driver.getMaxCentralHeatingTemperature();
 
+    float_t driverMinCentralHeatingTemperature = minCentralHeatingTemperature.Valid()
+        ? (float_t)minCentralHeatingTemperature.Value()
+        : _config.minSetPoint;
+    float_t climateMinTemperature = driverMinCentralHeatingTemperature > _config.minSetPoint
+        ? driverMinCentralHeatingTemperature
+        : _config.minSetPoint;
+
     discoveryMgr->addClimate(
         device,
         "Boiler",
@@ -41,7 +48,7 @@ void Boiler::init(
     )
         ->setCurrentTemperatureTemplate("{{ value_json.centralHeatingCurrentTemperature }}")
         ->setCurrentTemperatureTopic(stateTopic)
-        ->setMinTemp(minCentralHeatingTemperature.Valid() ? minCentralHeatingTemperature.Value() : 30)
+        ->setMinTemp(climateMinTemperature)
         ->setMaxTemp(maxCentralHeatingTemperature.Valid() ? maxCentralHeatingTemperature.Value() : 60)
         ->setModeCommandTemplate("{\"centralHeatingMode\": \"{{ value }}\"}")
         ->setModeCommandTopic(commandTopic)
@@ -154,6 +161,9 @@ void Boiler::setCentralHeatingMode(CentralHeatingMode mode)
             _mqttStateMgr->getState().setCentralHeatingMode(EDHA::MODE_AUTO);
             _lastAutoUpdateTime = 0;
             _prevTime = esp_timer_get_time();
+            _interlockOn = true;
+            _noDemandTicks = 0;
+            _lastChDisableTime = 0;
             break;
     }
 }
@@ -168,6 +178,10 @@ void Boiler::setCentralHeatingSetPoint(float_t setPoint)
     if (_state.mode == CENTRAL_HEATING_MODE_AUTO) { // skip update setpoint in auto mode
         return;
     }
+
+    const float_t maxSetPoint = 80.0f;
+    float_t minSetPoint = _config.minSetPoint > maxSetPoint ? maxSetPoint : _config.minSetPoint;
+    setPoint = constrain(setPoint, minSetPoint, maxSetPoint);
 
     if (!_driver.setCentralHeatingSetPoint(setPoint)) {
         LOGE("boiler", "failed to update central heating setpoint. value: %f", setPoint);
@@ -277,23 +291,89 @@ void Boiler::updateAutoMode()
     }
 
     if (_lastAutoUpdateTime == 0 || ((_lastAutoUpdateTime + 300000000) < esp_timer_get_time())) { // every 5 min
-        auto demand = getRoomEnergyDemand();
-        _prevTime = esp_timer_get_time();
-        auto k = 1.0f; // todo: move to config
-        auto Tu = 26.0f; // todo: get avg room setpoint?
-        auto ku = 1.2f; // todo: move to config
-        auto a = -0.21f*k - 0.06f;
-        auto b = 6.04f*k + 1.98f;
-        auto c = -5.06f*k + 18.06f;
-        auto x = -0.2f*_state.outdoorTemperature + 5.0f;
-        auto Tn = a * pow(x, 2) + b * x + c;
-        auto Tk = (Tu - 20) * ku;
-        auto setPoint = constrain(Tn + Tk + demand * 10.0f, 30, 80);
+        const float_t demandDeadband = 0.2f;     // °C
+        const uint8_t interlockOffTicks = 2;     // 10 min at the 5-min cadence
+        const uint64_t minChOffTime = 600000000; // 10 min in us
+        const float_t trimLimit = 10.0f;
+        const float_t maxSetPoint = 80.0f;
+
+        uint8_t workingCount = 0;
+        bool hasDemand = false;
+        float_t errSum = 0.0f;
+
+        for (int i = 0; i < ROOMS_COUNT; i++) {
+            if (!_roomsStatus[i].Valid()) {
+                continue;
+            }
+
+            const RoomStatus& status = _roomsStatus[i].Value();
+            if (!(status.active && status.ready)) {
+                continue;
+            }
+
+            workingCount++;
+            errSum += status.err;
+
+            if (status.err > demandDeadband) {
+                hasDemand = true;
+            }
+        }
+
+        float_t avgErr = workingCount > 0 ? errSum / workingCount : 0.0f;
+
+        // Interlock: disable CH after two consecutive no-demand ticks, re-enable only
+        // once a room demands heat and the minimum CH-off time has elapsed.
+        if (_interlockOn) {
+            if (hasDemand) {
+                _noDemandTicks = 0;
+            } else {
+                _noDemandTicks++;
+                if (_noDemandTicks >= interlockOffTicks) {
+                    _interlockOn = false;
+                    _lastChDisableTime = esp_timer_get_time();
+                    _noDemandTicks = 0;
+                }
+            }
+        } else {
+            if (hasDemand && esp_timer_get_time() >= _lastChDisableTime + minChOffTime) {
+                _interlockOn = true;
+            }
+        }
+
+        // Trim: P is a dimensionless gain on the mean room error, I is a per-second
+        // integral gain; the accumulator is persisted in BoilerState.autoTrim.
+        auto now = esp_timer_get_time();
+        float_t dt = float_t(now - _prevTime) / 1000000.0f;
+        if (dt < 0.0f) {
+            dt = 0.0f;
+        }
+        if (dt > 600.0f) {
+            dt = 600.0f;
+        }
+        _prevTime = now;
+
+        if (_interlockOn && workingCount > 0) {
+            _state.autoTrim = constrain(_state.autoTrim + _config.I * avgErr * dt, -trimLimit, trimLimit);
+        }
+
+        float_t trim = constrain(_config.P * avgErr + _state.autoTrim, -trimLimit, trimLimit);
+
+        float_t coeffA = -0.21f * _config.K - 0.06f;
+        float_t coeffB = 6.04f * _config.K + 1.98f;
+        float_t coeffC = -5.06f * _config.K + 18.06f;
+        float_t x = -0.2f * _state.outdoorTemperature + 5.0f;
+        float_t base = coeffA * x * x + coeffB * x + coeffC + _config.B;
+
+        // constrain() with lo > hi is undefined, so cap the floor at the ceiling.
+        float_t minSetPoint = _config.minSetPoint > maxSetPoint ? maxSetPoint : _config.minSetPoint;
+        float_t setPoint = constrain(base + trim, minSetPoint, maxSetPoint);
 
         LOGD(
             "boiler",
-            "calculate setpoint in auto mode. Tn: %f, Tk: %f, demand: %f, setPoint: %f",
-            Tn, Tk, demand, setPoint
+            "calculate setpoint in auto mode. outdoor: %f, base: %f, avgErr: %f, trim: %f, autoTrim: %f, "
+            "working: %u, demanding: %d, interlock: %d, setPoint: %f",
+            _state.outdoorTemperature, base, avgErr, trim, _state.autoTrim,
+            workingCount, hasDemand, _interlockOn, setPoint
         );
 
         if (!_driver.setCentralHeatingSetPoint(setPoint)) {
@@ -302,7 +382,7 @@ void Boiler::updateAutoMode()
             return;
         }
 
-        if (!_driver.changeCentralHeatingState(setPoint >= 35)) {
+        if (!_driver.changeCentralHeatingState(_interlockOn)) {
             LOGE("boiler", "failed to change central heating");
             _lastAutoUpdateTime += 5000000;
             return;

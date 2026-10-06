@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "config.h"
+#include "defines.h"
 #include "relay/relay.h"
 
 class Valve
@@ -17,7 +18,11 @@ public:
             percent = 100;
         }
 
-        _closePercent = 100 - percent;
+        // Map logical 0-100% to physical opening: below 70% the valve passes no heat.
+        uint8_t physical = VALVE_MIN_PHYSICAL_OPENING
+            + (uint8_t)((100 - VALVE_MIN_PHYSICAL_OPENING) * (uint32_t)percent / 100);
+
+        _closePercent = 100 - physical;
         _closeTime = (int64_t)_config.windowTime * (int64_t)_closePercent / 100;
         _nextUpdateTime = esp_timer_get_time();
         

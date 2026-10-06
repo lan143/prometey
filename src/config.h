@@ -12,7 +12,7 @@
 #include "room/state.h"
 #include "valve/config.h"
 
-#define CURRENT_VERSION 2
+#define CURRENT_VERSION 3
 
 #define MQTT_TOPIC_LEN 64
 
