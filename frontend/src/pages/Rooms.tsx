@@ -75,12 +75,6 @@ function validateRoom(form: RoomForm): RoomErrors {
       'Temperature topic',
       LIMITS.room.topicMax,
     ],
-    [
-      'mqttTemperatureSensorField',
-      form.mqttTemperatureSensorField,
-      'Temperature field',
-      LIMITS.room.temperatureFieldMax,
-    ],
   ];
   for (const [key, raw, label, max] of topics) {
     if (raw.trim().length === 0) {
@@ -88,6 +82,11 @@ function validateRoom(form: RoomForm): RoomErrors {
     } else if (raw.length > max) {
       errors[key] = `At most ${max} characters.`;
     }
+  }
+
+  // Optional: empty means the firmware parses the whole MQTT payload as a float.
+  if (form.mqttTemperatureSensorField.trim().length > LIMITS.room.temperatureFieldMax) {
+    errors.mqttTemperatureSensorField = `At most ${LIMITS.room.temperatureFieldMax} characters.`;
   }
 
   const pid: ReadonlyArray<[keyof RoomErrors, string, string]> = [
@@ -118,15 +117,13 @@ function formFromRoom(room: RoomSettings, slot: number): BuiltForm {
     room.mqttStateTopic || `prometey/room${slot}/state`;
   const mqttTemperatureSensorTopic =
     room.mqttTemperatureSensorTopic || `prometey/room${slot}/temperature`;
-  const mqttTemperatureSensorField =
-    room.mqttTemperatureSensorField || 'value';
+  const mqttTemperatureSensorField = room.mqttTemperatureSensorField;
 
   const usedPlaceholders =
     (room.name || '').trim().length === 0 ||
     (room.mqttCommandTopic || '').trim().length === 0 ||
     (room.mqttStateTopic || '').trim().length === 0 ||
-    (room.mqttTemperatureSensorTopic || '').trim().length === 0 ||
-    (room.mqttTemperatureSensorField || '').trim().length === 0;
+    (room.mqttTemperatureSensorTopic || '').trim().length === 0;
 
   return {
     usedPlaceholders,
@@ -156,7 +153,7 @@ function suggestedRoomForm(slot: number): RoomForm {
     mqttCommandTopic: `prometey/room${slot}/set`,
     mqttStateTopic: `prometey/room${slot}/state`,
     mqttTemperatureSensorTopic: `prometey/room${slot}/temperature`,
-    mqttTemperatureSensorField: 'value',
+    mqttTemperatureSensorField: '',
     kP: '1',
     kI: '0.01',
     kD: '0',
@@ -458,8 +455,10 @@ function RoomCard({
               label="Temperature field"
               value={form.mqttTemperatureSensorField}
               onInput={(value) => update({ mqttTemperatureSensorField: value })}
+              placeholder="value"
               maxLength={LIMITS.room.temperatureFieldMax}
               error={errors.mqttTemperatureSensorField}
+              help="Optional; leave empty if the message payload is a bare number (parsed as float, not JSON)."
               autoComplete="off"
             />
             <Field
@@ -638,8 +637,10 @@ function AddRoomForm({ freeSlot, onAdded, onCancel }: AddRoomFormProps) {
         label="Temperature field"
         value={form.mqttTemperatureSensorField}
         onInput={(value) => update({ mqttTemperatureSensorField: value })}
+        placeholder="value"
         maxLength={LIMITS.room.temperatureFieldMax}
         error={errors.mqttTemperatureSensorField}
+        help="Optional; leave empty if the message payload is a bare number (parsed as float, not JSON)."
         autoComplete="off"
       />
       <Field

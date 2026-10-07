@@ -568,9 +568,10 @@ export function postRoom(payload: RoomPayload): Promise<ActionResult> {
     LIMITS.room.topicMax,
   );
   const mqttTemperatureSensorField = requireString(
-    payload.mqttTemperatureSensorField,
+    payload.mqttTemperatureSensorField.trim(),
     'Temperature field',
     LIMITS.room.temperatureFieldMax,
+    true,
   );
   const kP = requireNumber(payload.kP, 'Room kP', LIMITS.room.pidMin, 1_000_000);
   const kI = requireNumber(payload.kI, 'Room kI', LIMITS.room.pidMin, 1_000_000);
