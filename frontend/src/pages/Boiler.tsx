@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
 import {
-  deleteBoilerState,
   getBoilerSettings,
   postBoilerUpdate,
   LIMITS,
 } from '../api/client';
 import { Banner } from '../components/Banner';
-import { Button, DangerButton } from '../components/Button';
+import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Field } from '../components/Field';
 import { NeedsRebootNotice } from '../components/NeedsRebootNotice';
-import { RebootOverlay, useRebootFlow } from '../components/RebootFlow';
 import { Select, type SelectOption } from '../components/Select';
 import { WeatherCurveChart } from '../components/WeatherCurveChart';
 
@@ -148,10 +146,6 @@ export function BoilerPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const [resetError, setResetError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const rebootFlow = useRebootFlow();
-
   const baudOptions = useMemo(() => speedOptions(form.modbusSpeed), [form.modbusSpeed]);
 
   const load = useCallback(async () => {
@@ -218,24 +212,6 @@ export function BoilerPage() {
     },
     [form],
   );
-
-  const handleReset = useCallback(async () => {
-    const confirmed = window.confirm(
-      'Delete the stored boiler state (/boiler.bin)? The DEVICE WILL REBOOT and heating will be offline for 20-60 seconds.',
-    );
-    if (!confirmed) {
-      return;
-    }
-    setResetError(null);
-    setDeleting(true);
-    const result = await deleteBoilerState();
-    setDeleting(false);
-    if (result.ok) {
-      rebootFlow.start();
-    } else {
-      setResetError(result.message);
-    }
-  }, [rebootFlow.start]);
 
   if (!loaded) {
     return (
@@ -396,28 +372,6 @@ export function BoilerPage() {
           </div>
         </form>
       </Card>
-
-      <Card title="Danger zone" class="danger-zone">
-        <h3>Delete boiler state</h3>
-        <p class="muted">
-          Removes /boiler.bin from the device flash. The device reboots
-          immediately afterwards.
-        </p>
-        {resetError ? (
-          <Banner
-            kind="error"
-            message={resetError}
-            onClose={() => setResetError(null)}
-          />
-        ) : null}
-        <div class="form-actions">
-          <DangerButton onClick={() => void handleReset()} disabled={deleting || rebootFlow.phase !== 'idle'}>
-            Delete boiler state (/boiler.bin)
-          </DangerButton>
-        </div>
-      </Card>
-
-      <RebootOverlay flow={rebootFlow} />
     </div>
   );
 }

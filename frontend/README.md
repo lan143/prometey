@@ -111,8 +111,9 @@ timers are torn down when the user navigates away.
   Never parse the config bytes in the frontend or hardcode their length.
 - **Config changes require a reboot.** Wi-Fi/MQTT/boiler/room/valve writes are persisted
   immediately but only take effect after `POST /api/reboot`. The UI shows a
-  reboot-required notice after every save; the Status tab offers the reboot button, and
-  `DELETE /api/boiler/state` / `DELETE /api/rooms/state` reboot the device on their own.
+  reboot-required notice after every save, and the Status tab offers the reboot button.
+  The frontend does not expose the device's `DELETE /api/boiler/state` or
+  `DELETE /api/rooms/state` endpoints.
 
 ## Known device-quirk endpoints
 

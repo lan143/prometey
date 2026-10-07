@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { Fragment } from 'preact';
 import {
-  deleteRoomsState,
   getRooms,
   getValves,
   postRoom,
@@ -13,7 +12,6 @@ import { Button, DangerButton } from '../components/Button';
 import { Card } from '../components/Card';
 import { Field } from '../components/Field';
 import { NeedsRebootNotice } from '../components/NeedsRebootNotice';
-import { RebootOverlay, useRebootFlow } from '../components/RebootFlow';
 import { RoomValves } from '../components/RoomValves';
 import { Select } from '../components/Select';
 
@@ -699,11 +697,8 @@ export function RoomsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [valves, setValves] = useState<ValveSettings[] | null>(null);
   const [valvesError, setValvesError] = useState<string | null>(null);
-  const [resetError, setResetError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const rebootFlow = useRebootFlow();
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -778,24 +773,6 @@ export function RoomsPage() {
     );
     setFeedback('Room removed from heating. Reboot to apply.');
   }, []);
-
-  const handleReset = useCallback(async () => {
-    const confirmed = window.confirm(
-      'Delete all stored room state (/room_*.bin)? The DEVICE WILL REBOOT and heating will be offline for 20-60 seconds.',
-    );
-    if (!confirmed) {
-      return;
-    }
-    setResetError(null);
-    setDeleting(true);
-    const result = await deleteRoomsState();
-    setDeleting(false);
-    if (result.ok) {
-      rebootFlow.start();
-    } else {
-      setResetError(result.message);
-    }
-  }, [rebootFlow.start]);
 
   if (!loaded) {
     return (
@@ -905,28 +882,6 @@ export function RoomsPage() {
           )}
         </>
       ) : null}
-
-      <Card title="Danger zone" class="danger-zone">
-        <h3>Reset room state</h3>
-        <p class="muted">
-          Deletes every /room_&lt;i&gt;.bin file from the device flash. The
-          device reboots immediately afterwards.
-        </p>
-        {resetError ? (
-          <Banner
-            kind="error"
-            message={resetError}
-            onClose={() => setResetError(null)}
-          />
-        ) : null}
-        <div class="form-actions">
-          <DangerButton onClick={() => void handleReset()} disabled={deleting || rebootFlow.phase !== 'idle'}>
-            Reset room state (delete /room_*.bin)
-          </DangerButton>
-        </div>
-      </Card>
-
-      <RebootOverlay flow={rebootFlow} />
     </div>
   );
 }

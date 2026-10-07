@@ -691,16 +691,6 @@ export function uploadBackup(data: Uint8Array): Promise<ActionResult> {
   });
 }
 
-/** DELETE /api/boiler/state — the device deletes /boiler.bin and reboots. */
-export function deleteBoilerState(): Promise<ActionResult> {
-  return send('/api/boiler/state', { method: 'DELETE' });
-}
-
-/** DELETE /api/rooms/state — the device deletes /room_<i>.bin and reboots. */
-export function deleteRoomsState(): Promise<ActionResult> {
-  return send('/api/rooms/state', { method: 'DELETE' });
-}
-
 /** POST /api/reboot — the device replies `{}` then restarts. */
 export function reboot(): Promise<ActionResult> {
   return send('/api/reboot', { method: 'POST' });

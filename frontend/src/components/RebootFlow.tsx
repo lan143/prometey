@@ -5,8 +5,8 @@ import { Button } from './Button';
 
 /**
  * Shared reboot-recovery flow for every "destructive with reboot" action:
- * `POST /api/reboot`, `DELETE /api/boiler/state` and `DELETE /api/rooms/state`
- * all return `{}` and then restart the device (boot takes roughly 20-60 s).
+ * `POST /api/reboot` returns `{}` and then restarts the device (boot takes
+ * roughly 20-60 s). Used by the Status and Backup pages.
  *
  * Call {@link RebootFlowHandle.start} only after the reboot-triggering request
  * itself reported success, then render {@link RebootOverlay}.
