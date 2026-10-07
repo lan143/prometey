@@ -60,7 +60,7 @@ without hardware; say so plainly in the final report.
   `.pio/libdeps/` instead of guessing.
 - Domain object lifecycle everywhere: constructor takes injected deps (pointers/refs) →
   `init(config…)` → periodic `update()` → `ready()` for healthcheck.
-- Boiler AUTO mode (`Boiler::updateAutoMode()`, 5-min cadence): quadratic weather curve scaled by config `K` (`a=-0.21K-0.06, b=6.04K+1.98, c=-5.06K+18.06, x=-0.2·Tout+5`) plus parallel offset `B`, plus a PI trim on the mean error of working rooms (`P` = proportional gain, `I` = integral gain per second; the integral persists in `BoilerState.autoTrim`; trim clamped ±10 °C). The setpoint is clamped to `[BoilerConfig.minSetPoint, 80]` — `minSetPoint` (default 50) is the non-condensing-boiler floor and is also enforced on the manual setpoint path and in HA discovery `minTemp`. CH interlock: central heating is disabled after 2 consecutive ticks with no working room demanding heat (room error > 0.2 °C) and re-enabled on demand no earlier than 10 min after disable. Rooms keep computing PID and report `RoomStatus` to the boiler while CH is off; valves fail safe to 100% while CH is disabled.
+- Boiler AUTO mode (`Boiler::updateAutoMode()`, 5-min cadence): quadratic weather curve scaled by config `K` (`a=-0.21K-0.06, b=6.04K+1.98, c=-5.06K+18.06, x=-0.2·Tout+5`) plus parallel offset `B`, plus a PI trim on the mean error of working rooms (`P` = proportional gain, `I` = integral gain per second; the integral persists in `BoilerState.autoTrim`; trim clamped ±10 °C). The setpoint is clamped to `[BoilerConfig.minSetPoint, 80]` in AUTO mode — `minSetPoint` (default 50) is the non-condensing-boiler floor — while the manual setpoint path is clamped to a fixed `[30, 80]` and HA discovery climate `minTemp` is the driver-declared minimum with fallback 30. CH interlock: central heating is disabled after 2 consecutive ticks with no working room demanding heat (room error > 0.2 °C) and re-enabled on demand no earlier than 10 min after disable. Rooms keep computing PID and report `RoomStatus` to the boiler while CH is off; valves fail safe to 100% while CH is disabled; the MQTT/HA `valveOpening` sensor reports the logical PID value, not the fail-safe actuation value.
 - Persistence: config and state live as **raw binary structs** in LittleFS
   (`/config.bin`, `/boiler.bin`, `/room_<i>.bin`). Renaming, reordering or re-typing
   struct fields breaks stored data: bump `CURRENT_VERSION` in `src/config.h` and handle
@@ -142,7 +142,8 @@ POST   /api/settings/boiler/update → urlencoded body: driver (0=no_select,
                                      1=ECTOControlV2 → modbusAddress, modbusSpeed
                                      required), weather-curve floats K, B, P, I
                                      required, minSetPoint required (30..80, floor for
-                                     all CH setpoint writes), outdoorSensor
+                                     AUTO-mode CH setpoint writes; manual writes use a
+                                     fixed [30, 80]), outdoorSensor
                                      (0=no_select, 1=MQTT → outdoorSensorMqttTopic,
                                      outdoorSensorMqttField required)
 DELETE /api/boiler/state           → removes /boiler.bin from LittleFS, reboots

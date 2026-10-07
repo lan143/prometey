@@ -70,6 +70,7 @@ void Room::calculateValvePosition()
     if (!_state.active || !_state.currentTemperatureInit || !_isReady) {
         driveValves(100);
         _valveOpeningPercent = 100;
+        _mqttStateMgr->getState().setValveOpening(_valveOpeningPercent);
 
         _boiler->updateRoomStatus(_config.id, RoomStatus{false, false, 0.0f, 0.0f});
 
@@ -91,6 +92,7 @@ void Room::calculateValvePosition()
         _state.prevErr = err;
 
         _valveOpeningPercent = constrain(int(P+_state.I+D), 0, 100);
+        _mqttStateMgr->getState().setValveOpening(_valveOpeningPercent);
 
         uint8_t target = _boiler->isCentralHeatingEnabled() ? _valveOpeningPercent : 100;
         driveValves(target);
@@ -129,8 +131,6 @@ void Room::driveValves(uint8_t percent)
     for (auto valve : _valves) {
         valve->setOpening(percent);
     }
-
-    _mqttStateMgr->getState().setValveOpening(percent);
 }
 
 void Room::saveState()

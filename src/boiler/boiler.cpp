@@ -33,13 +33,6 @@ void Boiler::init(
     auto minCentralHeatingTemperature = _driver.getMinCentralHeatingTemperature();
     auto maxCentralHeatingTemperature = _driver.getMaxCentralHeatingTemperature();
 
-    float_t driverMinCentralHeatingTemperature = minCentralHeatingTemperature.Valid()
-        ? (float_t)minCentralHeatingTemperature.Value()
-        : _config.minSetPoint;
-    float_t climateMinTemperature = driverMinCentralHeatingTemperature > _config.minSetPoint
-        ? driverMinCentralHeatingTemperature
-        : _config.minSetPoint;
-
     discoveryMgr->addClimate(
         device,
         "Boiler",
@@ -48,7 +41,7 @@ void Boiler::init(
     )
         ->setCurrentTemperatureTemplate("{{ value_json.centralHeatingCurrentTemperature }}")
         ->setCurrentTemperatureTopic(stateTopic)
-        ->setMinTemp(climateMinTemperature)
+        ->setMinTemp(minCentralHeatingTemperature.Valid() ? (float_t)minCentralHeatingTemperature.Value() : 30.0f)
         ->setMaxTemp(maxCentralHeatingTemperature.Valid() ? maxCentralHeatingTemperature.Value() : 60)
         ->setModeCommandTemplate("{\"centralHeatingMode\": \"{{ value }}\"}")
         ->setModeCommandTopic(commandTopic)
@@ -61,7 +54,7 @@ void Boiler::init(
         ->setModes(climateModes)
         ->setPayloadOff("false")
         ->setPayloadOn("true")
-        ->setActionTopic(commandTopic)
+        ->setActionTopic(stateTopic)
         ->setActionTemplate("{{ value_json.centralHeatingState }}");
 
     std::list<EDHA::Mode> hotWaterModes;
@@ -179,8 +172,8 @@ void Boiler::setCentralHeatingSetPoint(float_t setPoint)
         return;
     }
 
+    const float_t minSetPoint = 30.0f;
     const float_t maxSetPoint = 80.0f;
-    float_t minSetPoint = _config.minSetPoint > maxSetPoint ? maxSetPoint : _config.minSetPoint;
     setPoint = constrain(setPoint, minSetPoint, maxSetPoint);
 
     if (!_driver.setCentralHeatingSetPoint(setPoint)) {
@@ -230,6 +223,11 @@ void Boiler::update()
         auto isFlameActive = _driver.isFlameActive();
         if (isFlameActive.Valid()) {
             _mqttStateMgr->getState().changeFlameActive(isFlameActive.Value());
+        }
+
+        auto isCentralHeatingActive = _driver.isCentralHeatingActive();
+        if (isCentralHeatingActive.Valid()) {
+            _mqttStateMgr->getState().changeCentralHeatingActive(isCentralHeatingActive.Value());
         }
 
         if (isFlameActive.Value() && !isHotWaterActive.Value()) {

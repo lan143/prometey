@@ -14,6 +14,7 @@ bool State::operator==(State& other)
         && (*this)._hotWaterCurrentTemperature == other._hotWaterCurrentTemperature
         && (*this)._isHotWaterActive == other._isHotWaterActive
         && (*this)._isFlameActive == other._isFlameActive
+        && (*this)._isCentralHeatingActive == other._isCentralHeatingActive
         && (*this)._isFault == other._isFault
         && (*this)._modulation == other._modulation;
 }
