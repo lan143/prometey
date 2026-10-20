@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "edc-config-ui": "file:../../ed-config/frontend",
     "edn-network-ui": "file:../../ed-network/frontend",
     "preact": "^10.29.8"
   },

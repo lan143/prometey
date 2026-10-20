@@ -183,9 +183,9 @@ void Handler::init()
     });
 
     // The backup endpoint must be registered before the single-file config
-    // endpoint: a plain "/api/config" matcher is BackwardCompatible, i.e. it also
-    // matches "/api/config/..." (WebServer.cpp:339), and handlers are matched in
-    // registration order (_attachHandler, WebServer.cpp:145-151).
+    // endpoint (ed-config README requirement): a plain "/api/config" matcher is
+    // BackwardCompatible, i.e. it also matches "/api/config/..." (WebServer.cpp:339),
+    // and handlers are matched in registration order (_attachHandler, WebServer.cpp:145-151).
     _configBackupHandler.registerHandlers(_server);
 
     _configFileHandler.registerHandlers(_server);

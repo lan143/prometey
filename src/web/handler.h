@@ -8,13 +8,14 @@
 
 #include <LittleFS.h>
 #include <ESPAsyncWebServer.h>
+#include <backup/config_backup_handler.hpp>
+#include <backup/config_file_handler.hpp>
 #include <data_mgr.h>
 #include <healthcheck.h>
 #include <network/network_api.h>
 
 #include "config.h"
-#include "config_backup_handler.h"
-#include "config_file_handler.h"
+#include "web/backup_specs.h"
 #include "boiler/boiler_handler.h"
 #include "room/api/room_handler.h"
 #include "valve/api/valve_handler.h"
@@ -30,7 +31,9 @@ public:
         ValveHandler* valveHandler
     ) : _configMgr(configMgr), _networkApi(networkApi),
         _healthCheck(healthCheck), _boilerHandler(boilerHandler), _roomHandler(roomHandler),
-        _valveHandler(valveHandler) {
+        _valveHandler(valveHandler),
+        _configFileHandler(BackupSpecs::kConfigFileHandlerConfig),
+        _configBackupHandler(BackupSpecs::kBackupHandlerConfig) {
         _server = new AsyncWebServer(80);
     }
 
@@ -44,6 +47,6 @@ private:
     EDHealthCheck::HealthCheck* _healthCheck = nullptr;
     RoomHandler* _roomHandler = nullptr;
     ValveHandler* _valveHandler = nullptr;
-    ConfigFileHandler _configFileHandler;
-    ConfigBackupHandler _configBackupHandler;
+    EDConfig::ConfigFileHandler _configFileHandler;
+    EDConfig::ConfigBackupHandler _configBackupHandler;
 };
