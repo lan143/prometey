@@ -28,6 +28,61 @@ export interface DeviceStatus {
   fwVersion?: string;
 }
 
+/** Central-heating mode accepted by the control endpoints. */
+export type ControlCentralHeatingMode = 'off' | 'heat' | 'auto';
+
+/** Boiler readback merged into GET /api/control from `State::marshalJSON`. */
+export interface ControlBoilerState {
+  requestedMode: ControlCentralHeatingMode;
+  outdoorTemperature: number;
+  // Optional live fields are omitted by the firmware until the driver reports.
+  centralHeatingMode?: ControlCentralHeatingMode;
+  centralHeatingState?: 'heating' | 'idle';
+  centralHeatingSetPoint?: number;
+  centralHeatingCurrentTemperature?: number;
+  /** Raw `EDHA::mapMode` value, e.g. "off" or "gas". */
+  hotWaterMode?: string;
+  hotWaterSetPoint?: number;
+  hotWaterCurrentTemperature?: number;
+  // The firmware serializes these three flags as the strings "true"/"false".
+  isHotWaterActive?: string;
+  isFlameActive?: string;
+  isFault?: string;
+  modulation?: number;
+}
+
+/** One instantiated room in GET /api/control. */
+export interface ControlRoomState {
+  id: number;
+  name: string;
+  active: boolean;
+  setPoint: number;
+  currentTemperature: number;
+  temperatureValid: boolean;
+  valveOpening: number;
+}
+
+/** GET /api/control */
+export interface ControlSnapshot {
+  boiler: ControlBoilerState;
+  rooms: ControlRoomState[];
+}
+
+/** POST /api/control/boiler — any subset of these fields is accepted. */
+export interface ControlBoilerCommand {
+  centralHeatingMode?: ControlCentralHeatingMode;
+  centralHeatingSetPoint?: number;
+  hotWaterMode?: 'off' | 'gas';
+  hotWaterSetPoint?: number;
+}
+
+/** POST /api/control/room — `mode: "off"` disables, any other mode enables. */
+export interface ControlRoomCommand {
+  id: number;
+  mode?: 'off' | 'heat';
+  setPoint?: number;
+}
+
 /** GET /api/settings/boiler */
 export interface BoilerSettings {
   driver: number;

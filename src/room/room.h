@@ -40,6 +40,7 @@ public:
 
     void changeActive(bool active);
     uint8_t getID() { return _config.id; }
+    const char* getName() const { return _config.name; }
     uint8_t getValveOpeningPercent() { return _valveOpeningPercent; }
     const RoomState& getState() const { return _state; }
 

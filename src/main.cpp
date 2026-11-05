@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <data_mgr.h>
 #include <storage/littlefs_storage.hpp>
@@ -33,6 +34,7 @@
 #include "state/producer.h"
 #include "valve/api/valve_handler.h"
 #include "valve/valve.h"
+#include "web/control_handler.h"
 #include "web/handler.h"
 #include "web/reboot_after_response.h"
 
@@ -75,10 +77,48 @@ std::list<Valve*> valves;
 BoilerHandler boilerHandler(&configMgr);
 RoomHandler roomHandler(&configMgr, &rooms);
 ValveHandler valveHandler(&configMgr);
-Handler handler(&configMgr, &networkApi, &healthCheck, &boilerHandler, &roomHandler, &valveHandler);
+ControlHandler controlHandler(&configMgr, &rooms, &stateMgr, &boiler);
+Handler handler(&configMgr, &networkApi, &healthCheck, &boilerHandler, &roomHandler, &valveHandler, &controlHandler);
 
 
 bool inited = false;
+
+namespace
+{
+    bool isRoomClimateDiscoveryTopic(const std::string& topicName)
+    {
+        if (topicName.find("/climate/") == std::string::npos) {
+            return false;
+        }
+
+        if (topicName.find("_room_") == std::string::npos) {
+            return false;
+        }
+
+        const std::string suffix = "/config";
+        return topicName.size() >= suffix.size()
+            && topicName.compare(topicName.size() - suffix.size(), suffix.size(), suffix) == 0;
+    }
+
+    std::string injectRoomClimateTempStep(const std::string& payload)
+    {
+        JsonDocument document;
+        if (deserializeJson(document, payload.c_str()) != DeserializationError::Ok) {
+            return payload;
+        }
+
+        JsonObject entity = document.as<JsonObject>();
+        if (entity.isNull() || !entity["temp_step"].isNull()) {
+            return payload;
+        }
+
+        entity["temp_step"] = 0.1f;
+
+        std::string result;
+        serializeJson(document, result);
+        return result;
+    }
+}
 
 void initRooms()
 {
@@ -242,6 +282,12 @@ void setup()
         configMgr.getData()->mqttHADiscoveryPrefix,
         configMgr.getData()->mqttIsHADiscovery,
         [](std::string topicName, std::string payload) {
+            if (isRoomClimateDiscoveryTopic(topicName)) {
+                // ed-ha is pinned without setTempStep(); HA climate discovery defaults
+                // temp_step to 1, so inject 0.1 to expose 0.1 °C setpoint control.
+                payload = injectRoomClimateTempStep(payload);
+            }
+
             return mqtt.publish(topicName.c_str(), payload.c_str(), true);
         }
     );

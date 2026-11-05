@@ -61,6 +61,9 @@ public:
     void setCentralHeatingSetPoint(float_t setPoint);
     void setHotWaterSetPoint(float_t setPoint);
 
+    CentralHeatingMode getCentralHeatingMode() const { return _state.mode; }
+    float_t getOutdoorTemperature() const { return _state.outdoorTemperature; }
+
     void setOutdoorTemperature(float_t temperature) { _state.outdoorTemperature = temperature; }
     void updateRoomStatus(uint8_t roomID, const RoomStatus& status)
     {

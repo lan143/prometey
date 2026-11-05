@@ -467,7 +467,7 @@ function RoomCard({
               onInput={(value) => update({ kP: value })}
               type="number"
               min={LIMITS.room.pidMin}
-              step={0.1}
+              step={0.0001}
               error={errors.kP}
             />
             <Field
@@ -476,7 +476,7 @@ function RoomCard({
               onInput={(value) => update({ kI: value })}
               type="number"
               min={LIMITS.room.pidMin}
-              step={0.1}
+              step={0.0001}
               error={errors.kI}
             />
             <Field
@@ -485,7 +485,7 @@ function RoomCard({
               onInput={(value) => update({ kD: value })}
               type="number"
               min={LIMITS.room.pidMin}
-              step={0.1}
+              step={0.0001}
               error={errors.kD}
             />
 
@@ -649,7 +649,7 @@ function AddRoomForm({ freeSlot, onAdded, onCancel }: AddRoomFormProps) {
         onInput={(value) => update({ kP: value })}
         type="number"
         min={LIMITS.room.pidMin}
-        step={0.1}
+        step={0.0001}
         error={errors.kP}
         help="Suggested starting value."
       />
@@ -659,7 +659,7 @@ function AddRoomForm({ freeSlot, onAdded, onCancel }: AddRoomFormProps) {
         onInput={(value) => update({ kI: value })}
         type="number"
         min={LIMITS.room.pidMin}
-        step={0.01}
+        step={0.0001}
         error={errors.kI}
         help="Suggested starting value."
       />
@@ -669,7 +669,7 @@ function AddRoomForm({ freeSlot, onAdded, onCancel }: AddRoomFormProps) {
         onInput={(value) => update({ kD: value })}
         type="number"
         min={LIMITS.room.pidMin}
-        step={0.1}
+        step={0.0001}
         error={errors.kD}
         help="Suggested starting value."
       />

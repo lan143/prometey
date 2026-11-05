@@ -16,6 +16,7 @@
 
 #include "config.h"
 #include "web/backup_specs.h"
+#include "web/control_handler.h"
 #include "boiler/boiler_handler.h"
 #include "room/api/room_handler.h"
 #include "valve/api/valve_handler.h"
@@ -28,10 +29,11 @@ public:
         EDHealthCheck::HealthCheck* healthCheck,
         BoilerHandler* boilerHandler,
         RoomHandler* roomHandler,
-        ValveHandler* valveHandler
+        ValveHandler* valveHandler,
+        ControlHandler* controlHandler
     ) : _configMgr(configMgr), _networkApi(networkApi),
         _healthCheck(healthCheck), _boilerHandler(boilerHandler), _roomHandler(roomHandler),
-        _valveHandler(valveHandler),
+        _valveHandler(valveHandler), _controlHandler(controlHandler),
         _configFileHandler(BackupSpecs::kConfigFileHandlerConfig),
         _configBackupHandler(BackupSpecs::kBackupHandlerConfig) {
         _server = new AsyncWebServer(80);
@@ -49,6 +51,7 @@ private:
     EDHealthCheck::HealthCheck* _healthCheck = nullptr;
     RoomHandler* _roomHandler = nullptr;
     ValveHandler* _valveHandler = nullptr;
+    ControlHandler* _controlHandler = nullptr;
     EDConfig::ConfigFileHandler _configFileHandler;
     EDConfig::ConfigBackupHandler _configBackupHandler;
 };

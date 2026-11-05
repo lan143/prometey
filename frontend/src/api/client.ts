@@ -1,6 +1,9 @@
 import type {
   BoilerPayload,
   BoilerSettings,
+  ControlBoilerCommand,
+  ControlRoomCommand,
+  ControlSnapshot,
   DeviceStatus,
   EmptyObject,
   HealthResponse,
@@ -268,6 +271,17 @@ function requireBoolean(value: unknown, field: string): boolean {
   return value;
 }
 
+function requireOneOf<T extends string>(
+  value: unknown,
+  field: string,
+  allowed: ReadonlyArray<T>,
+): T {
+  if (typeof value !== 'string' || !(allowed as ReadonlyArray<string>).includes(value)) {
+    throw new Error(`${field} must be one of: ${allowed.join(', ')}.`);
+  }
+  return value as T;
+}
+
 // --- reads ------------------------------------------------------------------
 
 /** GET /api/settings */
@@ -293,6 +307,11 @@ export function getValves(): Promise<ApiResult<ValvesResponse>> {
 /** GET /api/status */
 export function getStatus(): Promise<ApiResult<DeviceStatus>> {
   return getJson<DeviceStatus>('/api/status', EMPTY_BODY_MESSAGE);
+}
+
+/** GET /api/control — live boiler and instantiated-room state. */
+export function getControl(): Promise<ApiResult<ControlSnapshot>> {
+  return getJson<ControlSnapshot>('/api/control', EMPTY_BODY_MESSAGE);
 }
 
 /** GET /healthcheck/healty (misspelled path and key intentionally). */
@@ -534,6 +553,92 @@ export function postValve(payload: ValvePayload): Promise<ActionResult> {
     windowTime,
     roomID,
   });
+}
+
+/**
+ * POST /api/control/boiler — applies live (no reboot).
+ *
+ * Every field is optional, but at least one must be present. Manual CH
+ * setpoints are ignored by the firmware while the mode is AUTO and are clamped
+ * to [30, 80]. The DHW setpoint range is driver-defined, so only finiteness is
+ * enforced here and the firmware is the authority.
+ */
+export function postControlBoiler(
+  payload: ControlBoilerCommand,
+): Promise<ActionResult> {
+  const body: ControlBoilerCommand = {};
+
+  if (payload.centralHeatingMode !== undefined) {
+    body.centralHeatingMode = requireOneOf(
+      payload.centralHeatingMode,
+      'Central heating mode',
+      ['off', 'heat', 'auto'] as const,
+    );
+  }
+
+  if (payload.centralHeatingSetPoint !== undefined) {
+    body.centralHeatingSetPoint = requireNumber(
+      payload.centralHeatingSetPoint,
+      'Central heating setpoint',
+      30,
+      80,
+    );
+  }
+
+  if (payload.hotWaterMode !== undefined) {
+    body.hotWaterMode = requireOneOf(
+      payload.hotWaterMode,
+      'Hot water mode',
+      ['off', 'gas'] as const,
+    );
+  }
+
+  if (payload.hotWaterSetPoint !== undefined) {
+    body.hotWaterSetPoint = requireNumber(
+      payload.hotWaterSetPoint,
+      'Hot water setpoint',
+      -1_000_000,
+      1_000_000,
+    );
+  }
+
+  if (Object.keys(body).length === 0) {
+    throw new Error('At least one boiler command field is required.');
+  }
+
+  return sendJson('/api/control/boiler', body);
+}
+
+/**
+ * POST /api/control/room — applies live (no reboot).
+ *
+ * `mode: "off"` disables the room; any accepted non-off mode enables it. At
+ * least one of `mode`/`setPoint` is required. Setpoints are clamped to [16, 32]
+ * by the firmware.
+ */
+export function postControlRoom(
+  payload: ControlRoomCommand,
+): Promise<ActionResult> {
+  const id = requireNumber(payload.id, 'Room id', LIMITS.room.idMin, LIMITS.room.idMax);
+  if (!Number.isInteger(id)) {
+    throw new Error('Room id must be an integer.');
+  }
+
+  const body: ControlRoomCommand = { id };
+
+  if (payload.mode !== undefined) {
+    body.mode = requireOneOf(payload.mode, 'Room mode', ['off', 'heat'] as const);
+  }
+
+  if (payload.setPoint !== undefined) {
+    body.setPoint = requireNumber(payload.setPoint, 'Room setpoint', 16, 32);
+  }
+
+  if (payload.mode === undefined && payload.setPoint === undefined) {
+    throw new Error('Room mode or setpoint is required.');
+  }
+
+  return sendJson('/api/control/room', body);
 }
 
 /** POST /api/reboot — the device replies `{}` then restarts. */

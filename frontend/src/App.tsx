@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { getStatus } from './api/client';
 import { TabBar, type TabItem } from './components/TabBar';
 import { StatusPage } from './pages/Status';
+import { ControlPage } from './pages/Control';
 import { ConnectionsPage } from './pages/Connections';
 import { BoilerPage } from './pages/Boiler';
 import { RoomsPage } from './pages/Rooms';
@@ -11,6 +12,7 @@ import { LoggerSettingsPage } from './pages/Logger';
 
 type TabId =
   | 'status'
+  | 'control'
   | 'connections'
   | 'network'
   | 'boiler'
@@ -20,6 +22,7 @@ type TabId =
 
 const TABS: ReadonlyArray<TabItem<TabId>> = [
   { id: 'status', label: 'Status' },
+  { id: 'control', label: 'Control' },
   { id: 'connections', label: 'MQTT' },
   { id: 'network', label: 'Network' },
   { id: 'boiler', label: 'Boiler' },
@@ -32,6 +35,8 @@ function renderPanel(tab: TabId) {
   switch (tab) {
     case 'status':
       return <StatusPage />;
+    case 'control':
+      return <ControlPage />;
     case 'connections':
       return <ConnectionsPage />;
     case 'network':

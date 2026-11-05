@@ -42,6 +42,7 @@ void Handler::init()
     _boilerHandler->registerHandlers(_server);
     _roomHandler->registerHandlers(_server);
     _valveHandler->registerHandlers(_server);
+    _controlHandler->registerRoutes(_server);
     _healthCheck->registerHandlers(_server);
 
     registerLogSettingsHandlers();

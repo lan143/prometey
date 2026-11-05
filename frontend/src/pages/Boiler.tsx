@@ -271,7 +271,7 @@ export function BoilerPage() {
             value={form.K}
             onInput={(value) => update({ K: value })}
             type="number"
-            step={0.1}
+            step={0.0001}
             error={errors.K}
           />
           <Field
@@ -279,7 +279,7 @@ export function BoilerPage() {
             value={form.B}
             onInput={(value) => update({ B: value })}
             type="number"
-            step={0.1}
+            step={0.0001}
             error={errors.B}
           />
           <Field
@@ -287,7 +287,7 @@ export function BoilerPage() {
             value={form.P}
             onInput={(value) => update({ P: value })}
             type="number"
-            step={0.1}
+            step={0.0001}
             error={errors.P}
           />
           <Field
@@ -295,7 +295,7 @@ export function BoilerPage() {
             value={form.I}
             onInput={(value) => update({ I: value })}
             type="number"
-            step={0.1}
+            step={0.0001}
             error={errors.I}
           />
           <Field
@@ -305,7 +305,7 @@ export function BoilerPage() {
             type="number"
             min={30}
             max={80}
-            step={1}
+            step={0.0001}
             inputMode="numeric"
             error={errors.minSetPoint}
             help="Lower bound for the computed setpoint (30-80 °C)."
