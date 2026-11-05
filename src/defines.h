@@ -25,6 +25,12 @@
 #define CONTROLLER_NAME "Prometey"
 #endif
 
+// scripts/ota_env.py injects PROMETHEY_OTA_AUTH from the untracked .env for
+// the kc868a16_ota env. Keep the legacy default when building without .env.
+#ifndef PROMETHEY_OTA_AUTH
+#define PROMETHEY_OTA_AUTH "somestrongpassword"
+#endif
+
 #define ROOMS_COUNT 8
 #define VALVES_COUNT 9
 

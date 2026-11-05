@@ -10,14 +10,19 @@ Home Assistant discovery integration. Target hardware is the Kincony KC868-A16 b
 
 ## Build & Deploy
 
-PlatformIO only (no CMake/Make). There are no unit tests in the repo — compilation is
-the primary local gate.
+PlatformIO for builds; the root `Makefile` orchestrates OTA deployment. There are no
+unit tests in the repo — compilation is the primary local gate.
 
 - Compile: `pio run -e kc868a16`
 - Flash over USB: `pio run -e kc868a16 -t upload`
 - Upload web UI to LittleFS: `pio run -e kc868a16 -t uploadfs` (contents of `data/`)
 - Serial monitor: `pio device monitor` (115200 baud)
-- OTA: `pio run -e kc868a16_ota -t upload` (espota to `upload_port` from platformio.ini)
+- OTA: requires the untracked `/.env` (copy `.env.example`) with `PROMETHEY_OTA_IP`
+  and `PROMETHEY_OTA_AUTH`; `make deploy` runs the full pipeline — flash firmware over
+  OTA → wait for boot → back up configs via `/api/config/backup` → flash the LittleFS
+  UI → wait → restore configs → verify `/api/status`. Standalone targets: `make backup`,
+  `make restore` (`ZIP=<path>` to choose a file; defaults to
+  `build/deploy/latest.zip`), `make status`, `make firmware`, `make ui`.
 - `env:kc868a16_dev` is currently broken (it extends nonexistent `env:kc868a2`). Do not
   "fix" it as a side effect of other work; raise it explicitly if it matters.
 
@@ -27,6 +32,8 @@ without hardware; say so plainly in the final report.
 ## Layout
 
 - `platformio.ini` — envs: `kc868a16` (production), `kc868a16_dev` (broken), `kc868a16_ota`
+- `Makefile` — OTA deployment orchestration (`deploy`, `backup`, `restore`, `status`)
+- `scripts/ota_env.py` — injects `.env` OTA IP/auth into `env:kc868a16_ota` (see `.env.example`)
 - `src/main.cpp` — composition root: global objects + `setup()`/`loop()`; all wiring lives here
 - `src/config.h` — root `Config` struct persisted to LittleFS (`/config.bin`); `CURRENT_VERSION`
 - `src/defines.h` — pins, counts (`ROOMS_COUNT`, `VALVES_COUNT`), device identity
@@ -208,7 +215,9 @@ Enum codes used in API payloads (see `src/boiler/enums.h`, `src/room/enums.h`,
 - Build runs with `-Wshadow` and `CORE_DEBUG_LEVEL=5`; new warnings are failures.
 - `setup()` default-config lambda sets `config->rooms[0].id` inside the loop (looks like
   a pre-existing bug for `rooms[i]`). Do not silently change behavior in unrelated work.
-- OTA password `somestrongpassword` is hardcoded (`main.cpp`, `platformio.ini`) and the
+- OTA address/password come from the untracked `/.env` via `scripts/ota_env.py`, which
+  injects `PROMETHEY_OTA_AUTH` into the `kc868a16_ota` firmware at build time;
+  `src/defines.h` keeps the legacy fallback password for builds without `.env`. The
   remote log host `192.168.1.2:5555` is hardcoded and marked `// tmp`. Never add real
   credentials to the repo.
 - `.pio/`, `.vscode/` generated files and `.DS_Store` are gitignored; don't commit them.

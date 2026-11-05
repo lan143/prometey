@@ -253,7 +253,7 @@ void setup()
     networkMgr.init(configMgr.getData()->network, true, ETH_ADDR, -1, ETH_MDC_PIN, ETH_MDIO_PIN, ETH_TYPE, ETH_CLK_MODE);
 
     LOGI("setup", "init OTA");
-    ArduinoOTA.setPassword("somestrongpassword");
+    ArduinoOTA.setPassword(PROMETHEY_OTA_AUTH);
     ArduinoOTA.begin();
 
     LOGI("setup", "mqtt init");
