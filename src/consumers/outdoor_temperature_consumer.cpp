@@ -8,15 +8,25 @@ void OutdoorTemperatureConsumer::consume(std::string payload)
 {
     EDUtils::Nullable<float_t> outdoorTemperature = EDUtils::Nullable<float_t>(false, 0);
 
-    if (!EDUtils::parseJson(payload.c_str(), [this, &outdoorTemperature](JsonObject root) {
-        if (root.containsKey(_field)) {
-            outdoorTemperature.setValidValue(root[_field].as<float_t>());
+    if (_field.size() > 0) {
+        if (!EDUtils::parseJson(payload.c_str(), [this, &outdoorTemperature](JsonObject root) {
+            if (root.containsKey(_field)) {
+                outdoorTemperature.setValidValue(root[_field].as<float_t>());
+            }
+
+            return true;
+        })) {
+            LOGE("OutdoorTemperatureConsumer", "failed to unmarshal message from topic");
+            return;
+        }
+    } else {
+        float_t value;
+        if (EDUtils::str2float(&value, payload.c_str()) != EDUtils::STR2INT_SUCCESS) {
+            LOGE("OutdoorTemperatureConsumer", "failed to parse float temperature value from topic");
+            return;
         }
 
-        return true;
-    })) {
-        LOGE("OutdoorTemperatureConsumer", "failed to unmarshal message from topic");
-        return;
+        outdoorTemperature.setValidValue(value);
     }
 
     if (outdoorTemperature.Valid()) {

@@ -115,10 +115,8 @@ function validateBoiler(form: BoilerForm): BoilerErrors {
     errors.outdoorSensorMqttTopic = `At most ${LIMITS.boiler.topicMax} characters.`;
   }
 
-  if (form.outdoorSensorMqttField.trim().length === 0) {
-    errors.outdoorSensorMqttField =
-      'Field is required when MQTT is selected.';
-  } else if (form.outdoorSensorMqttField.length > LIMITS.boiler.fieldMax) {
+  // Optional: empty means the firmware parses the whole MQTT payload as a float.
+  if (form.outdoorSensorMqttField.length > LIMITS.boiler.fieldMax) {
     errors.outdoorSensorMqttField = `At most ${LIMITS.boiler.fieldMax} characters.`;
   }
 
@@ -348,10 +346,11 @@ export function BoilerPage() {
             label="Outdoor sensor MQTT field"
             value={form.outdoorSensorMqttField}
             onInput={(value) => update({ outdoorSensorMqttField: value })}
+            placeholder="value"
             maxLength={LIMITS.boiler.fieldMax}
             disabled={form.outdoorSensor !== '1'}
             error={errors.outdoorSensorMqttField}
-            help="Required when the source is MQTT."
+            help="Optional; leave empty if the payload is a bare number (parsed as float, not JSON)."
             autoComplete="off"
           />
 

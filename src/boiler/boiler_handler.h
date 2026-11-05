@@ -79,9 +79,8 @@ public:
                     request->send(422, "application/json", "{\"message\": \"You must select outdoor sensor type\"}");
                     return;
                 case BOILER_OUTDOOR_SENSOR_MQTT:
-                    if (!request->hasParam("outdoorSensorMqttTopic", true)
-                        || !request->hasParam("outdoorSensorMqttField", true)) {
-                        request->send(422, "application/json", "{\"message\": \"You must specify mqtt topic and field\"}");
+                    if (!request->hasParam("outdoorSensorMqttTopic", true)) {
+                        request->send(422, "application/json", "{\"message\": \"You must specify mqtt topic\"}");
                         return;
                     }
                     break;
@@ -168,7 +167,11 @@ public:
                 const AsyncWebParameter* outdoorSensorMqttFieldParam = request->getParam("outdoorSensorMqttField", true);
 
                 strcpy(config.outdoorSensorMqttTopic, outdoorSensorMqttTopicParam->value().c_str());
-                strcpy(config.outdoorSensorMqttField, outdoorSensorMqttFieldParam->value().c_str());
+                if (outdoorSensorMqttFieldParam != nullptr) {
+                    strcpy(config.outdoorSensorMqttField, outdoorSensorMqttFieldParam->value().c_str());
+                } else {
+                    config.outdoorSensorMqttField[0] = '\0';
+                }
 
                 LOGD("handler", "outdoorSensorMqttTopic: %s, outdoorSensorMqttField: %s", config.outdoorSensorMqttTopic, config.outdoorSensorMqttField);
             }

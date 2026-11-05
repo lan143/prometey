@@ -144,8 +144,9 @@ POST   /api/settings/boiler/update → urlencoded body: driver (0=no_select,
                                      required, minSetPoint required (30..80, floor for
                                      AUTO-mode CH setpoint writes; manual writes use a
                                      fixed [30, 80]), outdoorSensor
-                                     (0=no_select, 1=MQTT → outdoorSensorMqttTopic,
-                                     outdoorSensorMqttField required)
+                                     (0=no_select, 1=MQTT → outdoorSensorMqttTopic
+                                     required, outdoorSensorMqttField optional;
+                                     empty field = payload parsed as a raw float)
 DELETE /api/boiler/state           → removes /boiler.bin from LittleFS, reboots
 
 GET  /api/settings/rooms   → {rooms:[{id, enabled, temperatureSensorType, name,

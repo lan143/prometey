@@ -370,7 +370,8 @@ export function postMqtt(payload: MqttPayload): Promise<ActionResult> {
  *
  * The firmware rejects driver=0 ("No select") and outdoorSensor=0 ("No")
  * with HTTP 422, so this function requires driver=1 (ECTOControlV2) and
- * outdoorSensor=1 (MQTT) before sending. MQTT topic and field are required.
+ * outdoorSensor=1 (MQTT) before sending. MQTT topic is required; the field is
+ * optional and an empty field means the whole payload is parsed as a float.
  */
 export function postBoilerUpdate(payload: BoilerPayload): Promise<ActionResult> {
   const driver = requireNumber(payload.driver, 'Boiler driver', 0, 1);
@@ -416,9 +417,6 @@ export function postBoilerUpdate(payload: BoilerPayload): Promise<ActionResult> 
 
   if (outdoorSensor === 1 && topic.length === 0) {
     throw new Error('Outdoor sensor topic is required when MQTT is selected.');
-  }
-  if (outdoorSensor === 1 && field.length === 0) {
-    throw new Error('Outdoor sensor field is required when MQTT is selected.');
   }
 
   const body = new URLSearchParams();
