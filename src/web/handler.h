@@ -40,6 +40,8 @@ public:
     void init();
 
 private:
+    void registerLogSettingsHandlers();
+
     AsyncWebServer* _server = nullptr;
     BoilerHandler* _boilerHandler = nullptr;
     EDConfig::DataMgr<Config>* _configMgr = nullptr;

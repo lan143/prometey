@@ -13,6 +13,7 @@
   "dependencies": {
     "edc-config-ui": "file:../../ed-config/frontend",
     "edn-network-ui": "file:../../ed-network/frontend",
+    "edu-log-ui": "file:../../ed-utils/frontend",
     "preact": "^10.29.8"
   },
   "devDependencies": {

@@ -1,13 +1,36 @@
 #include <ArduinoJSON.h>
+#include <AsyncJson.h>
 #include <FS.h>
 #include <esp_system.h>
 #include <ExtStrings.h>
 #include <Json.h>
+#include <log/log.h>
 #include <cstring>
 #include <string.h>
 #include "defines.h"
 #include "handler.h"
 #include "web/reboot_after_response.h"
+
+namespace
+{
+    void sendLogSettingsState(AsyncWebServerRequest* request, int status)
+    {
+        const EDUtils::LogConfig config = networkLogger.getConfig();
+
+        AsyncResponseStream* response = request->beginResponseStream("application/json");
+        response->setCode(status);
+
+        std::string payload = EDUtils::buildJson([&config](JsonObject entity) {
+            entity["host"] = config.host;
+            entity["uri"] = config.uri;
+            entity["port"] = config.port;
+            entity["enabled"] = networkLogger.isEnabled();
+        });
+
+        response->write(payload.c_str());
+        request->send(response);
+    }
+}
 
 void Handler::init()
 {
@@ -20,6 +43,8 @@ void Handler::init()
     _roomHandler->registerHandlers(_server);
     _valveHandler->registerHandlers(_server);
     _healthCheck->registerHandlers(_server);
+
+    registerLogSettingsHandlers();
 
     _networkApi->registerRoutes(*_server);
 
@@ -172,6 +197,8 @@ void Handler::init()
                     entity[F("lastResetReason")] = "Unknown";
                     break;
             }
+
+            entity[F("fwVersion")] = deviceFWVersion;
         });
         response->print(data.c_str());
         request->send(response);
@@ -191,4 +218,89 @@ void Handler::init()
     _configFileHandler.registerHandlers(_server);
 
     _server->begin();
+}
+
+void Handler::registerLogSettingsHandlers()
+{
+    _server->on("/api/log/settings", HTTP_GET, [](AsyncWebServerRequest* request) {
+        sendLogSettingsState(request, 200);
+    });
+
+    auto* postHandler = new AsyncCallbackJsonWebHandler(
+        "/api/log/settings",
+        [this](AsyncWebServerRequest* request, JsonVariant& json) {
+            if (!json.is<JsonObject>()) {
+                request->send(422, "application/json", "{\"message\": \"invalid json\"}");
+                return;
+            }
+
+            const JsonVariant hostValue = json["host"];
+            if (hostValue.isNull() || !hostValue.is<const char*>() || strlen(hostValue.as<const char*>()) == 0) {
+                request->send(422, "application/json", "{\"message\": \"host is required\"}");
+                return;
+            }
+
+            if (strlen(hostValue.as<const char*>()) >= LOG_HOST_LEN) {
+                request->send(422, "application/json", "{\"message\": \"host too long\"}");
+                return;
+            }
+
+            const JsonVariant uriValue = json["uri"];
+            if (uriValue.isNull() || !uriValue.is<const char*>() || strlen(uriValue.as<const char*>()) == 0) {
+                request->send(422, "application/json", "{\"message\": \"uri is required\"}");
+                return;
+            }
+
+            if (strlen(uriValue.as<const char*>()) >= LOG_HOST_LEN) {
+                request->send(422, "application/json", "{\"message\": \"uri too long\"}");
+                return;
+            }
+
+            const JsonVariant portValue = json["port"];
+            if (!portValue.is<int>() || portValue.as<int>() < 1 || portValue.as<int>() > 65535) {
+                request->send(422, "application/json", "{\"message\": \"invalid port\"}");
+                return;
+            }
+
+            const bool hasEnabled = !json["enabled"].isNull();
+            if (hasEnabled && !json["enabled"].is<bool>()) {
+                request->send(422, "application/json", "{\"message\": \"invalid enabled\"}");
+                return;
+            }
+
+            EDUtils::LogConfig config;
+            strncpy(config.host, hostValue.as<const char*>(), LOG_HOST_LEN - 1);
+            config.host[LOG_HOST_LEN - 1] = '\0';
+            strncpy(config.uri, uriValue.as<const char*>(), LOG_HOST_LEN - 1);
+            config.uri[LOG_HOST_LEN - 1] = '\0';
+            config.port = static_cast<uint16_t>(portValue.as<int>());
+
+            if (!networkLogger.setConfig(config)) {
+                request->send(422, "application/json", "{\"message\": \"invalid settings\"}");
+                return;
+            }
+
+            if (hasEnabled) {
+                networkLogger.enable(json["enabled"].as<bool>());
+            }
+
+            // "enabled" is deliberately runtime-only: it follows network connectivity.
+            Config* stored = _configMgr->getData();
+            strncpy(stored->log.host, config.host, LOG_HOST_LEN - 1);
+            stored->log.host[LOG_HOST_LEN - 1] = '\0';
+            strncpy(stored->log.uri, config.uri, LOG_HOST_LEN - 1);
+            stored->log.uri[LOG_HOST_LEN - 1] = '\0';
+            stored->log.port = config.port;
+
+            if (!_configMgr->store()) {
+                request->send(500, "application/json", "{\"message\": \"failed to store settings\"}");
+                return;
+            }
+
+            sendLogSettingsState(request, 200);
+        }
+    );
+    postHandler->setMethod(HTTP_POST);
+    postHandler->setMaxContentLength(1024);
+    _server->addHandler(postHandler);
 }

@@ -32,4 +32,9 @@ const char deviceName[] = CONTROLLER_NAME;
 const char deviceModel[] = "KC868-A16";
 const char deviceManufacturer[] = "Kincony";
 const char deviceHWVersion[] = "1.0.0";
-const char deviceFWVersion[] = "0.1.0";
+
+#ifndef PROMETEY_FW_VERSION
+#define PROMETEY_FW_VERSION "unknown"
+#endif
+
+const char deviceFWVersion[] = PROMETEY_FW_VERSION;

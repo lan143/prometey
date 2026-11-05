@@ -24,6 +24,8 @@ export interface DeviceStatus {
   freeHeap: number;
   uptime: number;
   lastResetReason: string;
+  /** Git-derived firmware stamp; absent from pre-version firmware. */
+  fwVersion?: string;
 }
 
 /** GET /api/settings/boiler */

@@ -1,4 +1,5 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
+import { getStatus } from './api/client';
 import { TabBar, type TabItem } from './components/TabBar';
 import { StatusPage } from './pages/Status';
 import { ConnectionsPage } from './pages/Connections';
@@ -6,8 +7,16 @@ import { BoilerPage } from './pages/Boiler';
 import { RoomsPage } from './pages/Rooms';
 import { BackupPage } from './pages/Backup';
 import { NetworkPage } from './pages/Network';
+import { LoggerSettingsPage } from './pages/Logger';
 
-type TabId = 'status' | 'connections' | 'network' | 'boiler' | 'rooms' | 'backup';
+type TabId =
+  | 'status'
+  | 'connections'
+  | 'network'
+  | 'boiler'
+  | 'rooms'
+  | 'logger'
+  | 'backup';
 
 const TABS: ReadonlyArray<TabItem<TabId>> = [
   { id: 'status', label: 'Status' },
@@ -15,6 +24,7 @@ const TABS: ReadonlyArray<TabItem<TabId>> = [
   { id: 'network', label: 'Network' },
   { id: 'boiler', label: 'Boiler' },
   { id: 'rooms', label: 'Rooms' },
+  { id: 'logger', label: 'Logger' },
   { id: 'backup', label: 'Backup' },
 ];
 
@@ -30,6 +40,8 @@ function renderPanel(tab: TabId) {
       return <BoilerPage />;
     case 'rooms':
       return <RoomsPage />;
+    case 'logger':
+      return <LoggerSettingsPage />;
     case 'backup':
       return <BackupPage />;
   }
@@ -37,6 +49,21 @@ function renderPanel(tab: TabId) {
 
 export function App() {
   const [tab, setTab] = useState<TabId>('status');
+  const [fwVersion, setFwVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    void getStatus().then((result) => {
+      if (mounted && result.ok && result.data.fwVersion) {
+        setFwVersion(result.data.fwVersion);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <>
@@ -62,7 +89,11 @@ export function App() {
           </svg>
           <h1>Prometey</h1>
         </div>
-        <span class="hint">offline device panel</span>
+        <div class="versions">
+          <span class="hint">offline device panel</span>
+          <span class="hint version">FW {fwVersion ?? '\u2014'}</span>
+          <span class="hint version">UI {__UI_VERSION__}</span>
+        </div>
       </header>
       <TabBar tabs={TABS} active={tab} onSelect={setTab} />
       <main

@@ -101,6 +101,67 @@ void applyLegacyConfigV2(Config* target, const ConfigV2& src)
     LOGI("migration", "legacy config v2 detected, migrating");
 }
 
+bool readLegacyConfigV3(ConfigV3* out)
+{
+    File file = LittleFS.open("/config.bin", FILE_READ);
+    if (!file) {
+        LOGD("migration", "legacy config v3 not found");
+        return false;
+    }
+
+    if (file.size() != sizeof(ConfigV3) + sizeof(uint16_t)) {
+        file.close();
+        return false;
+    }
+
+    if (file.read(reinterpret_cast<uint8_t*>(out), sizeof(ConfigV3)) != sizeof(ConfigV3)) {
+        LOGW("migration", "failed to read legacy config v3");
+        file.close();
+        return false;
+    }
+
+    uint16_t storedCrc = 0;
+    if (file.read(reinterpret_cast<uint8_t*>(&storedCrc), sizeof(uint16_t)) != sizeof(uint16_t)) {
+        LOGW("migration", "failed to read legacy config v3 checksum");
+        file.close();
+        return false;
+    }
+
+    file.close();
+
+    if (migrationCrc16(reinterpret_cast<const uint8_t*>(out), sizeof(ConfigV3)) != storedCrc) {
+        LOGW("migration", "migration crc mismatch, skipping");
+        return false;
+    }
+
+    if (out->version > 3) {
+        return false;
+    }
+
+    return true;
+}
+
+void applyLegacyConfigV3(Config* target, const ConfigV3& src)
+{
+    target->network = src.network;
+    target->mqtt = src.mqtt;
+    target->mqttIsHADiscovery = src.mqttIsHADiscovery;
+    memcpy(target->mqttHADiscoveryPrefix, src.mqttHADiscoveryPrefix, MQTT_TOPIC_LEN);
+    memcpy(target->mqttCommandTopic, src.mqttCommandTopic, MQTT_TOPIC_LEN);
+    memcpy(target->mqttStateTopic, src.mqttStateTopic, MQTT_TOPIC_LEN);
+
+    target->boiler = src.boiler;
+    memcpy(target->rooms, src.rooms, sizeof(src.rooms));
+    memcpy(target->valves, src.valves, sizeof(src.valves));
+
+    // Pre-v4 firmware hardcoded exactly these logger defaults.
+    strcpy(target->log.host, "192.168.1.2");
+    strcpy(target->log.uri, "/_bulk");
+    target->log.port = 5555;
+
+    LOGI("migration", "legacy config v3 detected, migrating");
+}
+
 bool readLegacyBoilerStateV1(BoilerStateV1* out)
 {
     File file = LittleFS.open("/boiler.bin", FILE_READ);

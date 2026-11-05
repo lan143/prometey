@@ -44,6 +44,29 @@ struct ConfigV2
     ValveConfig valves[VALVES_COUNT] = {};
 };
 
+// Frozen byte-layout replica of the v3 Config (before LogConfig).
+struct ConfigV3
+{
+    uint8_t version = 3;
+
+    EDNetwork::Config network;
+    EDMQTT::Config mqtt;
+
+    bool mqttIsHADiscovery = true;
+    char mqttHADiscoveryPrefix[MQTT_TOPIC_LEN] = {0};
+    char mqttCommandTopic[MQTT_TOPIC_LEN] = {0};
+    char mqttStateTopic[MQTT_TOPIC_LEN] = {0};
+
+    BoilerConfig boiler;
+    RoomConfig rooms[ROOMS_COUNT] = {};
+    ValveConfig valves[VALVES_COUNT] = {};
+};
+
+// Appending a field must not perturb the frozen v3 layout. The v4 struct may only
+// gain LogConfig plus trailing alignment padding.
+static_assert(sizeof(Config) >= sizeof(ConfigV3) + sizeof(EDUtils::LogConfig), "v4 Config must only append LogConfig to v3");
+static_assert(sizeof(Config) < sizeof(ConfigV3) + sizeof(EDUtils::LogConfig) + alignof(Config), "v4 Config grew more than LogConfig plus tail padding");
+
 // Frozen byte-layout replica of the legacy BoilerState (before autoTrim).
 struct BoilerStateV1
 {
@@ -62,6 +85,13 @@ bool readLegacyConfigV2(ConfigV2* out);
 // Copies every v2 field onto the v3 target, keeping CURRENT_VERSION and repairing
 // never-tuned (all-zero) K/B and P/I pairs to reproduce the previous behavior.
 void applyLegacyConfigV2(Config* target, const ConfigV2& src);
+
+// Reads "/config.bin" only when it holds a legacy v3 layout with a valid checksum.
+bool readLegacyConfigV3(ConfigV3* out);
+
+// Copies every v3 field onto the v4 target and restores the previously hardcoded
+// network logger defaults.
+void applyLegacyConfigV3(Config* target, const ConfigV3& src);
 
 // Reads "/boiler.bin" only when it holds the legacy pre-trim layout with a valid checksum.
 bool readLegacyBoilerStateV1(BoilerStateV1* out);

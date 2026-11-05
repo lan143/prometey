@@ -165,11 +165,17 @@ void setup()
         snprintf(config->mqttStateTopic, MQTT_TOPIC_LEN, "prometey/%s/state", EDUtils::getChipID());
         snprintf(config->mqttCommandTopic, MQTT_TOPIC_LEN, "prometey/%s/set", EDUtils::getChipID());
         snprintf(config->mqttHADiscoveryPrefix, MQTT_TOPIC_LEN, "homeassistant");
+        snprintf(config->log.host, LOG_HOST_LEN, "192.168.1.2");
+        snprintf(config->log.uri, LOG_HOST_LEN, "/_bulk");
+        config->log.port = 5555;
 
         for (int i = 0; i < ROOMS_COUNT; i++) {
             config->rooms[0].id = i;
         }
     });
+
+    auto* legacyConfigV3 = new ConfigV3();
+    bool hasLegacyConfigV3 = readLegacyConfigV3(legacyConfigV3);
 
     auto* legacyConfig = new ConfigV2();
     bool hasLegacyConfig = readLegacyConfigV2(legacyConfig);
@@ -177,19 +183,17 @@ void setup()
     LOGI("setup", "load config");
     configMgr.load();
 
-    if (hasLegacyConfig) {
+    if (hasLegacyConfigV3) {
+        applyLegacyConfigV3(configMgr.getData(), *legacyConfigV3);
+        configMgr.store();
+    } else if (hasLegacyConfig) {
         applyLegacyConfigV2(configMgr.getData(), *legacyConfig);
         configMgr.store();
     }
     delete legacyConfig;
+    delete legacyConfigV3;
 
-    // tmp
-    EDUtils::LogConfig networkConfig;
-    strcpy(networkConfig.host, "192.168.1.2");
-    networkConfig.port = 5555;
-    strcpy(networkConfig.uri, "/_bulk");
-
-    networkLogger.init(networkConfig, CONTROLLER_NAME, EDUtils::formatString("Prometey_%s", EDUtils::getMacAddress().c_str()));
+    networkLogger.init(configMgr.getData()->log, CONTROLLER_NAME, EDUtils::formatString("Prometey_%s", EDUtils::getMacAddress().c_str()));
 
     LOGI("setup", "init modbus");
     Serial2.begin(configMgr.getData()->boiler.modbusSpeed, SERIAL_8N1, RS485RX, RS485TX);

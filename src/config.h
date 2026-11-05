@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <log/log_config.h>
 #include <mqtt_config.h>
 #include <network/network_config.h>
 
@@ -12,7 +13,7 @@
 #include "room/state.h"
 #include "valve/config.h"
 
-#define CURRENT_VERSION 3
+#define CURRENT_VERSION 4
 
 #define MQTT_TOPIC_LEN 64
 
@@ -31,4 +32,6 @@ struct Config
     BoilerConfig boiler;
     RoomConfig rooms[ROOMS_COUNT] = {};
     ValveConfig valves[VALVES_COUNT] = {};
+
+    EDUtils::LogConfig log;
 };
