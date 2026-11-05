@@ -204,7 +204,7 @@ function RoomRow({
 
       <div class="mt">
         <SetPointForm
-          label="Room setpoint (\u00b0C)"
+          label="Room setpoint (°C)"
           value={room.setPoint}
           min={16}
           max={32}
@@ -381,7 +381,7 @@ export function ControlPage() {
 
         <div class="mt">
           <SetPointForm
-            label="CH setpoint (\u00b0C)"
+            label="CH setpoint (°C)"
             value={boiler.centralHeatingSetPoint}
             min={30}
             max={80}
@@ -418,7 +418,7 @@ export function ControlPage() {
 
         <div class="mt">
           <SetPointForm
-            label="DHW setpoint (\u00b0C)"
+            label="DHW setpoint (°C)"
             value={boiler.hotWaterSetPoint}
             step={0.1}
             help="Written to the boiler immediately."
