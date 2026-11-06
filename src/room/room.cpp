@@ -62,7 +62,9 @@ void Room::update()
 
 EDHealthCheck::ReadyResult Room::ready()
 {
-    return EDHealthCheck::ReadyResult(_isReady, _notReadyReason);
+    // A stale room temperature sensor degrades healthcheck to a warning instead of not-ready;
+    // PID for this room stays disabled in calculateValvePosition() because _isReady remains false.
+    return EDHealthCheck::ReadyResult(true, _notReadyReason, !_isReady);
 }
 
 void Room::calculateValvePosition()
@@ -155,6 +157,7 @@ void Room::checkToReady()
         _notReadyReason = "the temperature sensor has not provided new data for more than 2 hours.";
     } else {
         _isReady = true;
+        _notReadyReason = "";
     }
 }
 
